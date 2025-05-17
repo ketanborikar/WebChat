@@ -4,19 +4,16 @@ from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 from flask_bcrypt import Bcrypt
 
-# Initialize Flask, SocketIO & Bcrypt
 app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app, cors_allowed_origins="*")
 bcrypt = Bcrypt(app)
 
-# Updated NeonDB Connection String ✅
+# Updated NeonDB connection string
 DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
-# Connect to NeonDB
 def connect_db():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
-# Setup Database with Users & Messages Tables
 def setup_db():
     conn = connect_db()
     cursor = conn.cursor()
@@ -39,20 +36,21 @@ def setup_db():
 
 setup_db()
 
-# Track online users
+# Global sets/dicts for tracking online users
 online_users = set()
+clients = {}  # mapping from socket id to username
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# 🔹 **User Signup**
+# --- USER AUTHENTICATION ---
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.json
-    username, password = data["username"], data["password"]
+    username = data["username"]
+    password = data["password"]
     hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
-
     conn = connect_db()
     cursor = conn.cursor()
     try:
@@ -62,65 +60,73 @@ def signup():
         return jsonify({"message": "Username already exists!"}), 409
     finally:
         conn.close()
-
     return jsonify({"message": "User registered successfully!"})
 
-# 🔹 **User Login**
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
-    username, password = data["username"], data["password"]
-
+    username = data["username"]
+    password = data["password"]
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("SELECT password FROM users WHERE username=%s", (username,))
     user = cursor.fetchone()
     conn.close()
-
     if user and bcrypt.check_password_hash(user[0], password):
         return jsonify({"message": "Login successful!"})
     return jsonify({"message": "Invalid credentials"}), 401
 
-# 🔹 **Group Chat Join**
+# --- SOCKET.IO EVENTS ---
+
 @socketio.on("join")
 def handle_join(username):
+    from flask import request
+    # Save this client's username with its socket id
+    clients[request.sid] = username
     online_users.add(username)
-    socketio.emit("update_users", list(online_users))  # Send user list to all clients
+    socketio.emit("update_users", list(online_users))  # Update list for all
     socketio.send(f"**{username} joined the chat**")
 
-# 🔹 **Handle Disconnects**
 @socketio.on("disconnect")
 def handle_disconnect():
-    global online_users
-    for user in online_users.copy():
-        online_users.remove(user)
-    socketio.emit("update_users", list(online_users))  # Update user list on disconnect
+    from flask import request
+    sid = request.sid
+    username = clients.get(sid)
+    if username:
+        if username in online_users:
+            online_users.remove(username)
+        del clients[sid]
+        socketio.emit("update_users", list(online_users))  # Update online users list
 
-# 🔹 **Handling Messages (Group & Private)**
 @socketio.on("message")
 def handle_message(data):
     sender, msg = data.split(": ", 1)
     receiver = None
-
     if msg.startswith("@"):
         parts = msg.split(" ", 1)
         if len(parts) == 2:
             receiver = parts[0][1:]
             msg = parts[1]
-
+    # Save message to DB
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (sender, receiver, message) VALUES (%s, %s, %s)", (sender, receiver, msg))
     conn.commit()
     conn.close()
-
     if receiver:
         socketio.emit(f"private_{receiver}", f"{sender}: {msg}")
     else:
-        socketio.emit("message", f"{sender}: {msg}")  # ✅ FIX: Broadcast to all users
+        socketio.emit("message", f"{sender}: {msg}")
 
-# 🔹 **Fix: Bind to Render’s Assigned PORT & Debug Output**
+@socketio.on("private_message")
+def handle_private_message(data):
+    sender = data.get("sender")
+    receiver = data.get("receiver")
+    message = data.get("message")
+    # Optionally include DB storage logic for private messages
+    socketio.emit("private_" + receiver, f"{sender}: {message}")
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # ✅ Get Render’s assigned port
-    print(f"🔍 Debug: Starting server on port {port}")  # 🔍 Added Debugging Output
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starting server on port {port}")
     socketio.run(app, host="0.0.0.0", port=port)
