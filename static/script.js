@@ -1,10 +1,10 @@
-const socket = io("your-render-url");
+const socket = io("https://webchat-yoaw.onrender.com");
 
 function signup() {
     let username = document.getElementById("signup-username").value;
     let password = document.getElementById("signup-password").value;
 
-    fetch('/auth/signup', {
+    fetch("https://webchat-yoaw.onrender.com/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -16,7 +16,7 @@ function login() {
     let username = document.getElementById("login-username").value;
     let password = document.getElementById("login-password").value;
 
-    fetch('/auth/login', {
+    fetch("https://webchat-yoaw.onrender.com/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
