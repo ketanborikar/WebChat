@@ -3,11 +3,12 @@ eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity
 import config
 
 app = Flask(__name__, template_folder="templates")
 app.config["JWT_SECRET_KEY"] = "your_secret_key"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False  # ✅ No expiration for debugging
 jwt = JWTManager(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -17,10 +18,10 @@ online_users = set()  # Store online users dynamically
 def home():
     return "Chat service is running!"
 
-@app.route("/chat")
-@jwt_required()
+@app.route("/chat")  # ✅ Temporarily removed @jwt_required() to test authentication
 def chat_page():
     current_user = get_jwt_identity()
+    print(f"Received JWT identity: {current_user}")  # ✅ Debugging log
     return render_template("index.html", username=current_user)
 
 @app.route("/login", methods=["POST"])
