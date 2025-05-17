@@ -1,6 +1,3 @@
-<script>
-    console.log("JavaScript loaded properly!");
-</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,21 +29,25 @@
     <!-- JavaScript placed at the end of the body for proper loading -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            console.log("JavaScript loaded successfully!");  
             const socket = io.connect(window.location.origin); 
             let userName = "";
 
             function joinChat() {
-                console.log("joinChat() called"); // Debugging log
+                console.log("joinChat() called"); 
                 userName = document.getElementById("nameInput").value.trim();
                 if (userName) {
-                    document.getElementById("nameSection").style.display = "none";
-                    document.getElementById("chatSection").style.display = "block";
-                    socket.emit("join", userName);  // Notify server
+                    console.log("User entered name:", userName);  
+                    document.getElementById("nameSection").style.display = "none";  
+                    document.getElementById("chatSection").style.display = "block";  
+                    socket.emit("join", userName);  
+                } else {
+                    console.error("No name entered!");  
                 }
             }
 
             function sendMessage() {
-                console.log("sendMessage() called"); // Debugging log
+                console.log("sendMessage() called");  
                 const message = document.getElementById("messageInput").value.trim();
                 if (message) {
                     socket.send(`${userName}: ${message}`);
@@ -56,7 +57,7 @@
 
             // Load chat history on join
             socket.on("chat_history", (history) => {
-                console.log("Chat history received"); // Debugging log
+                console.log("Chat history received");  
                 const chatBox = document.getElementById("chatBox");
                 history.forEach((msg) => {
                     const messageElement = document.createElement("p");
@@ -66,7 +67,7 @@
             });
 
             socket.on("message", (msg) => {
-                console.log("Message received:", msg); // Debugging log
+                console.log("Message received:", msg);  
                 const chatBox = document.getElementById("chatBox");
                 const messageElement = document.createElement("p");
                 messageElement.textContent = msg;
@@ -75,4 +76,28 @@
             });
 
             window.addEventListener("beforeunload", function() {
-                console.log("User leaving the chat"); // Debugging log
+                console.log("User leaving the chat");  
+                socket.emit("leave", userName);  
+            });
+
+            document.getElementById("joinButton").addEventListener("click", function() {
+                console.log("Join button clicked");  
+                joinChat();
+            });
+
+            document.getElementById("sendButton").addEventListener("click", function() {
+                console.log("Send button clicked");  
+                sendMessage();
+            });
+
+            document.getElementById("messageInput").addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    console.log("Enter key pressed");  
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
