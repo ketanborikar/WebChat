@@ -70,27 +70,20 @@
                     const li = document.createElement("li");
                     li.textContent = user;
                     li.style.cursor = "pointer";
-                    li.onclick = () => { document.getElementById("messageInput").value = `@${user} `; };
+                    li.onclick = () => startPrivateChat(user);
                     userList.appendChild(li);
                 });
             });
 
-            function sendMessage() {
-                const message = document.getElementById("messageInput").value.trim();
-                if (message) {
-                    socket.send(`${userName}: ${message}`);
-                    document.getElementById("messageInput").value = "";
-                }
+            function startPrivateChat(receiver) {
+                const chatWindow = window.open("", receiver, "width=400,height=500");
+                chatWindow.document.write(`
+                    <h3>Private Chat with ${receiver}</h3>
+                    <div id="privateChatBox"></div>
+                    <input type="text" id="privateMessageInput" placeholder="Type message">
+                    <button onclick="sendPrivateMessage()">Send</button>
+                `);
             }
-
-            socket.on("message", (msg) => {
-                const chatBox = document.getElementById("chatBox");
-                const messageElement = document.createElement("p");
-                messageElement.classList.add("message");
-                messageElement.textContent = msg;
-                chatBox.appendChild(messageElement);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
 
             document.getElementById("signupButton").addEventListener("click", () => authenticate("signup"));
             document.getElementById("loginButton").addEventListener("click", () => authenticate("login"));
