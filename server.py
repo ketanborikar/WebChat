@@ -117,4 +117,10 @@ def handle_message(data):
     if receiver:
         socketio.emit(f"private_{receiver}", f"{sender}: {msg}")
     else:
-        socketio.emit("message", f"{sender}: {msg}")  # ✅ FIX: Broadcast
+        socketio.emit("message", f"{sender}: {msg}")  # ✅ FIX: Broadcast to all users
+
+# 🔹 **Fix: Bind to Render’s Assigned PORT & Debug Output**
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # ✅ Get Render’s assigned port
+    print(f"🔍 Debug: Starting server on port {port}")  # 🔍 Added Debugging Output
+    socketio.run(app, host="0.0.0.0", port=port)
