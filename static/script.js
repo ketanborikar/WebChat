@@ -1,21 +1,33 @@
-const socket = io("https://webchat-yoaw.onrender.com");
+document.addEventListener("DOMContentLoaded", function() {
+    let loginField = document.getElementById("login-password");
+    let signupField = document.getElementById("signup-password");
+    let chatInput = document.getElementById("chat-message");
 
-// Confirm WebSocket connection
-socket.on("connect", function() {
-    console.log("WebSocket connected successfully!");
+    // Ensure the elements exist before adding event listeners
+    if (loginField) {
+        loginField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                login();
+            }
+        });
+    }
+
+    if (signupField) {
+        signupField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                signup();
+            }
+        });
+    }
+
+    if (chatInput) {
+        chatInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                sendGroupMessage();
+            }
+        });
+    }
 });
-
-function signup() {
-    let username = document.getElementById("signup-username").value;
-    let password = document.getElementById("signup-password").value;
-
-    fetch("https://webchat-yoaw.onrender.com/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    }).then(response => response.json())
-      .then(data => alert(data.message));
-}
 
 function login() {
     let username = document.getElementById("login-username").value;
@@ -39,6 +51,18 @@ function login() {
       });
 }
 
+function signup() {
+    let username = document.getElementById("signup-username").value;
+    let password = document.getElementById("signup-password").value;
+
+    fetch("https://webchat-yoaw.onrender.com/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    }).then(response => response.json())
+      .then(data => alert(data.message));
+}
+
 function showNotification(message) {
     let notif = document.getElementById("notification");
     notif.innerText = message;
@@ -47,14 +71,6 @@ function showNotification(message) {
     setTimeout(() => {
         notif.style.display = "none";
     }, 3000);
-}
-
-function switchTab(tab) {
-    let chatTitle = document.getElementById("chat-title");
-    let chatBox = document.getElementById("chat-box");
-
-    chatTitle.innerText = tab === "group" ? "Group Chat" : tab;
-    chatBox.innerHTML = ""; // Clear chat when switching
 }
 
 function sendGroupMessage() {
@@ -66,24 +82,6 @@ function sendGroupMessage() {
         inputField.value = ""; // ✅ Clears input after sending
     }
 }
-
-document.getElementById("chat-message").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        sendGroupMessage();
-    }
-});
-
-document.getElementById("login-password").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        login();
-    }
-});
-
-document.getElementById("signup-password").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        signup();
-    }
-});
 
 function toggleTabs() {
     let tabs = document.getElementById("tabs");
