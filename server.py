@@ -106,3 +106,15 @@ def handle_message(data):
         parts = msg.split(" ", 1)
         if len(parts) == 2:
             receiver = parts[0][1:]
+            msg = parts[1]
+
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO messages (sender, receiver, message) VALUES (%s, %s, %s)", (sender, receiver, msg))
+    conn.commit()
+    conn.close()
+
+    if receiver:
+        socketio.emit(f"private_{receiver}", f"{sender}: {msg}")
+    else:
+        socketio.emit("message", f"{sender}: {msg}")  # ✅ FIX: Broadcast
