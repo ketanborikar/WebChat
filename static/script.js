@@ -3,29 +3,40 @@ document.addEventListener("DOMContentLoaded", function() {
     let signupField = document.getElementById("signup-password");
     let chatInput = document.getElementById("chat-message");
 
-    // Ensure the elements exist before adding event listeners
+    console.log("DOM fully loaded, checking elements...");
+
+    // Ensure each element exists before adding event listeners
     if (loginField) {
+        console.log("Login field found, adding event listener...");
         loginField.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 login();
             }
         });
+    } else {
+        console.log("Error: login-password element not found.");
     }
 
     if (signupField) {
+        console.log("Signup field found, adding event listener...");
         signupField.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 signup();
             }
         });
+    } else {
+        console.log("Error: signup-password element not found.");
     }
 
     if (chatInput) {
+        console.log("Chat input found, adding event listener...");
         chatInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 sendGroupMessage();
             }
         });
+    } else {
+        console.log("Error: chat-message element not found.");
     }
 });
 
