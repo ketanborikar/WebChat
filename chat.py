@@ -21,6 +21,7 @@ def home():
 @app.route("/chat")
 def chat_page():
     try:
+        print(f"Received Headers: {request.headers}")  # ✅ Debugging log: Print headers
         verify_jwt_in_request()  # ✅ Ensure the JWT token is verified before retrieving identity
         current_user = get_jwt_identity()
         print(f"Received JWT identity: {current_user}")  # ✅ Debugging log

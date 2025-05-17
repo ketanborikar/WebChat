@@ -74,7 +74,32 @@
 
             fetch("https://webchat-0qcu.onrender.com/chat", {
                 method: "GET",
-                headers: { "Authorization": `Bearer ${token}` }  // ✅ Include JWT token
+                headers: { 
+                    "Authorization": `Bearer ${token}`,  // ✅ Include JWT token
+                    "Content-Type": "application/json"   // ✅ Ensure correct request format
+                }
             })
             .then(response => response.text())
-            .then
+            .then(html => {
+                if (response.status === 401) {
+                    alert("Session expired! Please log in again.");
+                    localStorage.removeItem("jwt");
+                    location.reload();
+                } else {
+                    document.getElementById("chat-container").innerHTML = html;
+                }
+            })
+            .catch(() => {
+                alert("Error loading chat page. Please try again.");
+            });
+        }
+
+        function sendMessage() {
+            const msg = document.getElementById("msg_input").value;
+            socket.emit("send_message", { sender: "User1", message: msg, room: "group_chat" });
+        }
+
+        window.onload = loadChatPage;
+    </script>
+</body>
+</html>
