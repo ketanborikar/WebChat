@@ -90,6 +90,18 @@
           });
       }
 
+      // Display group chat history when received
+      socket.on("history", function (msgs) {
+        const chatBox = document.getElementById("chatBox");
+        msgs.forEach(function (msg) {
+          const messageElement = document.createElement("p");
+          messageElement.classList.add("message");
+          messageElement.textContent = msg;
+          chatBox.appendChild(messageElement);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+
       // Public message sending for group chat
       function sendMessage() {
         const message = document.getElementById("messageInput").value.trim();
@@ -107,7 +119,7 @@
         }
       });
 
-      // Display group chat messages
+      // Display group chat messages as they arrive
       socket.on("message", (msg) => {
         const chatBox = document.getElementById("chatBox");
         const messageElement = document.createElement("p");
@@ -132,29 +144,41 @@
 
       function startPrivateChat(receiver) {
         const chatWindow = window.open("", receiver, "width=400,height=500");
-        chatWindow.document.write(`
+        const popupHTML = `
           <h3>Private Chat with ${receiver}</h3>
-          <div id="privateChatBox"></div>
-          <input type="text" id="privateMessageInput" placeholder="Type message">
-          <button onclick="sendPrivateMessage()">Send</button>
-
+          <div id="privateChatBox" style="height:300px; overflow-y:auto; border:1px solid #ccc; margin-bottom:10px;"></div>
+          <input type="text" id="privateMessageInput" placeholder="Type message" style="width:70%;" />
+          <button id="privateSendButton">Send</button>
           <script>
-            const socket = io.connect("${window.location.origin}");
-            function sendPrivateMessage() {
-              const message = document.getElementById("privateMessageInput").value.trim();
-              if (message) {
-                socket.emit("private_message", { sender: "${userName}", receiver: "${receiver}", message });
-                document.getElementById("privateMessageInput").value = "";
+            (function(){
+              const socket = io.connect("${window.location.origin}");
+              function sendPrivateMessage() {
+                const input = document.getElementById("privateMessageInput");
+                const message = input.value.trim();
+                if (message) {
+                  socket.emit("private_message", { sender: "${userName}", receiver: "${receiver}", message: message });
+                  input.value = "";
+                }
               }
-            }
-            socket.on("private_${receiver}", (msg) => {
-              const chatBox = document.getElementById("privateChatBox");
-              const messageElement = document.createElement("p");
-              messageElement.textContent = msg;
-              chatBox.appendChild(messageElement);
-            });
+              document.getElementById("privateSendButton").addEventListener("click", sendPrivateMessage);
+              document.getElementById("privateMessageInput").addEventListener("keydown", function(e) {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  sendPrivateMessage();
+                }
+              });
+              socket.on("private_${receiver}", function(msg) {
+                const chatBox = document.getElementById("privateChatBox");
+                const msgElem = document.createElement("p");
+                msgElem.classList.add("private-message");
+                msgElem.textContent = msg;
+                chatBox.appendChild(msgElem);
+                chatBox.scrollTop = chatBox.scrollHeight;
+              });
+            })();
           <\/script>
-        `);
+        `;
+        chatWindow.document.write(popupHTML);
       }
 
       document.getElementById("signupButton").addEventListener("click", () => authenticate("signup"));

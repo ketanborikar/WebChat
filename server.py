@@ -36,6 +36,17 @@ def setup_db():
 
 setup_db()
 
+# New route to fetch group chat history
+@app.route("/history", methods=["GET"])
+def history():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT sender, message FROM messages WHERE receiver IS NULL ORDER BY timestamp ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    messages = [f"{sender}: {msg}" for sender, msg in rows]
+    return jsonify(messages)
+
 # Global sets/dicts for tracking online users
 online_users = set()
 clients = {}  # mapping from socket id to username
@@ -81,10 +92,19 @@ def login():
 @socketio.on("join")
 def handle_join(username):
     from flask import request
-    # Save this client's username with its socket id
+    # Save client's username with its socket id
     clients[request.sid] = username
     online_users.add(username)
-    socketio.emit("update_users", list(online_users))  # Update list for all
+    socketio.emit("update_users", list(online_users))  # Broadcast updated online users list
+
+    # Send group chat history to this client
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT sender, message FROM messages WHERE receiver IS NULL ORDER BY timestamp ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    history_msgs = [f"{sender}: {msg}" for sender, msg in rows]
+    socketio.emit("history", history_msgs, room=request.sid)
     socketio.send(f"**{username} joined the chat**")
 
 @socketio.on("disconnect")
@@ -96,7 +116,7 @@ def handle_disconnect():
         if username in online_users:
             online_users.remove(username)
         del clients[sid]
-        socketio.emit("update_users", list(online_users))  # Update online users list
+        socketio.emit("update_users", list(online_users))  # Broadcast updated online users list
 
 @socketio.on("message")
 def handle_message(data):
@@ -114,7 +134,7 @@ def handle_message(data):
     conn.commit()
     conn.close()
     if receiver:
-        socketio.emit(f"private_{receiver}", f"{sender}: {msg}")
+        socketio.emit("private_" + receiver, f"{sender}: {msg}")
     else:
         socketio.emit("message", f"{sender}: {msg}")
 
@@ -123,7 +143,6 @@ def handle_private_message(data):
     sender = data.get("sender")
     receiver = data.get("receiver")
     message = data.get("message")
-    # Optionally include DB storage logic for private messages
     socketio.emit("private_" + receiver, f"{sender}: {message}")
 
 if __name__ == "__main__":
