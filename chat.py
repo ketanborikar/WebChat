@@ -1,5 +1,5 @@
 import eventlet
-eventlet.monkey_patch()  # Fix: Apply monkey patching FIRST
+eventlet.monkey_patch()  # Fix: Apply monkey patching BEFORE other imports
 
 from flask import Flask
 from flask_socketio import SocketIO, emit, join_room
@@ -7,6 +7,11 @@ import config
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ✅ Fix: Homepage route to prevent 404 errors
+@app.route("/")
+def home():
+    return "Chat service is running!"
 
 @socketio.on("join")
 def handle_join(data):
