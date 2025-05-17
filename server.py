@@ -4,9 +4,11 @@ import json
 import asyncpg
 import os
 from datetime import datetime
+from aiohttp import web  # New HTTP endpoint for health checks
 
 # Get port from Render's environment variable
 PORT = int(os.getenv("PORT", 8765))  
+HTTP_PORT = 8000  # Separate port for health checks
 
 DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
@@ -27,28 +29,22 @@ async def get_chat_history():
     return [{"sender": row["sender"], "content": row["content"], "timestamp": row["timestamp"].strftime("%Y-%m-%d %H:%M:%S")} for row in rows]
 
 async def handler(websocket, path):
-    """Handle incoming connections and messages."""
+    """Handle incoming WebSocket connections and messages."""
     try:
-        # Receive initial handshake with username
         name = await websocket.recv()
         connected_users[websocket] = name
 
-        # Notify users of the new connection
         join_msg = json.dumps({"type": "notification", "content": f"{name} has joined the chat."})
         await asyncio.gather(*[user.send(join_msg) for user in connected_users if user != websocket])
 
-        # Send chat history
         history = await get_chat_history()
         await websocket.send(json.dumps({"type": "history", "messages": history}))
 
         async for message in websocket:
             msg_data = json.loads(message)
             sender, content = connected_users[websocket], msg_data["content"]
-
-            # Store message in database
             await save_message(sender, content)
 
-            # Broadcast message to all users
             msg_json = json.dumps({"type": "message", "sender": sender, "content": content})
             await asyncio.gather(*[user.send(msg_json) for user in connected_users])
 
@@ -56,17 +52,29 @@ async def handler(websocket, path):
         pass
 
     finally:
-        # Remove user and notify others
         if websocket in connected_users:
             leave_msg = json.dumps({"type": "notification", "content": f"{connected_users[websocket]} has left the chat."})
             del connected_users[websocket]
             await asyncio.gather(*[user.send(leave_msg) for user in connected_users])
 
+async def health_check(request):
+    """Simple HTTP endpoint for Render health checks."""
+    return web.Response(text="OK")
+
 async def main():
-    """Ensure the WebSocket server runs inside an event loop."""
-    async with websockets.serve(handler, "0.0.0.0", PORT):
-        print(f"WebSocket server started on port {PORT}...")
-        await asyncio.Future()  # Keeps the event loop running
+    """Ensure WebSocket server & health check run correctly."""
+    ws_server = await websockets.serve(handler, "0.0.0.0", PORT)
+    http_server = web.Application()
+    http_server.router.add_get("/", health_check)
+    runner = web.AppRunner(http_server)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", HTTP_PORT)
+    await site.start()
+
+    print(f"WebSocket server started on port {PORT}...")
+    print(f"HTTP health check running on port {HTTP_PORT}...")
+    
+    await asyncio.Future()  # Keeps the event loop running
 
 if __name__ == "__main__":
     asyncio.run(main())  # Starts the event loop correctly
