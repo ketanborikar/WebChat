@@ -17,9 +17,8 @@ app.register_blueprint(chat_bp, url_prefix='/chat')
 
 @app.route('/')
 def home():
-    return render_template("index.html")  # ✅ Serve the chat UI
+    return render_template("index.html")
 
-# Explicitly using eventlet async mode
 socketio.init_app(app, async_mode='eventlet')
 
 if __name__ == '__main__':

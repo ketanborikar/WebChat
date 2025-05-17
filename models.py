@@ -15,6 +15,6 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     sender_id = Column(Integer, ForeignKey('users.id'))
     receiver_id = Column(Integer, ForeignKey('users.id'), nullable=True)
-    group = Column(String, nullable=True)  # If null, it's private chat
+    group = Column(String, nullable=True)
     content = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
