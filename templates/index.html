@@ -18,15 +18,13 @@
         <button onclick="signup()">Sign Up</button>
     </div>
 
+    <div id="notification"></div>
+
     <!-- Button to toggle chat navigation -->
     <button id="menu-toggle" onclick="toggleTabs()">☰ Menu</button>
 
     <div id="chat-ui" style="display: none;">
-        <div id="tabs">
-            <button onclick="switchTab('group')">Group Chat</button>
-            <button onclick="switchTab('private')">Private Chat</button>
-            <button onclick="toggleDrawer()">Online Users</button>
-        </div>
+        <div id="tabs"></div>
 
         <div id="drawer" style="display: none;">
             <h2>Online Users</h2>

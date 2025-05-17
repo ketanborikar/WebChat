@@ -31,55 +31,78 @@ function login() {
               localStorage.setItem("token", data.access_token);
               localStorage.setItem("username", username);
 
-              alert("Login Successful!");
+              showNotification("Login Successful!");
 
-              // Hide login/signup and show chat UI
               document.getElementById("auth").style.display = "none";
               document.getElementById("chat-ui").style.display = "block";
-          } else {
-              alert("Invalid Credentials");
           }
       });
+}
+
+function showNotification(message) {
+    let notif = document.getElementById("notification");
+    notif.innerText = message;
+    notif.style.display = "block";
+
+    setTimeout(() => {
+        notif.style.display = "none";
+    }, 3000);
 }
 
 function switchTab(tab) {
     let chatTitle = document.getElementById("chat-title");
     let chatBox = document.getElementById("chat-box");
 
-    if (tab === "group") {
-        chatTitle.innerText = "Group Chat";
-    } else {
-        chatTitle.innerText = "Private Chat";
-    }
-
-    chatBox.innerHTML = ""; // Clear chat window when switching tabs
+    chatTitle.innerText = tab === "group" ? "Group Chat" : tab;
+    chatBox.innerHTML = ""; // Clear chat when switching
 }
 
 function sendGroupMessage() {
-    let content = document.getElementById("chat-message").value;
-    console.log("Sending message:", content);
+    let inputField = document.getElementById("chat-message");
+    let content = inputField.value;
 
-    socket.emit("message", { sender: localStorage.getItem("username"), group: "main", content }, (response) => {
-        console.log("Server response:", response);
-    });
-
-    socket.on("message", function(data) {
-        console.log("Message received from server:", data);
-        let chatBox = document.getElementById("chat-box");
-        chatBox.innerHTML += `<p><strong>${data.sender}:</strong> ${data.content}</p>`;
-    });
-
-    socket.on("error", function(error) {
-        console.log("Error from server:", error);
-    });
+    if (content.trim() !== "") {
+        socket.emit("message", { sender: localStorage.getItem("username"), group: "main", content });
+        inputField.value = ""; // ✅ Clears input after sending
+    }
 }
 
-function toggleDrawer() {
-    let drawer = document.getElementById("drawer");
-    drawer.style.display = (drawer.style.display === "none") ? "block" : "none";
-}
+document.getElementById("chat-message").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        sendGroupMessage();
+    }
+});
+
+document.getElementById("login-password").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        login();
+    }
+});
+
+document.getElementById("signup-password").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        signup();
+    }
+});
 
 function toggleTabs() {
     let tabs = document.getElementById("tabs");
-    tabs.classList.toggle("show-tabs"); // Toggle visibility
+    tabs.innerHTML = "";
+    tabs.classList.toggle("show-tabs");
+
+    let groupChatBtn = document.createElement("button");
+    groupChatBtn.innerText = "Group Chat";
+    groupChatBtn.onclick = () => switchTab("group");
+    tabs.appendChild(groupChatBtn);
+
+    fetch("https://webchat-yoaw.onrender.com/users")
+    .then(response => response.json())
+    .then(users => {
+        users.forEach(user => {
+            let userChatBtn = document.createElement("button");
+            userChatBtn.innerText = user.username;
+            userChatBtn.onclick = () => switchTab(user.username);
+            tabs.appendChild(userChatBtn);
+        });
+    });
 }
