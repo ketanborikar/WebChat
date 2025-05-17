@@ -1,3 +1,12 @@
+from flask import Blueprint, jsonify
+from flask_socketio import SocketIO
+from models import Message, User
+from config import SessionLocal
+
+# ✅ Initialize Flask-SocketIO before using it
+socketio = SocketIO(cors_allowed_origins="*")
+chat_bp = Blueprint('chat', __name__)
+
 @socketio.on('message')
 def handle_message(data):
     session = SessionLocal()
@@ -20,7 +29,6 @@ def handle_message(data):
 
     session.add(new_message)
     session.commit()
-    
     print("Message saved successfully!")
 
     # ✅ Send confirmation response
