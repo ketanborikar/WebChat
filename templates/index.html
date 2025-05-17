@@ -6,8 +6,6 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <h2>Welcome to WebChat</h2>
-
     <div id="auth">
         <h3>Login</h3>
         <input type="text" id="login-username" placeholder="Username">
@@ -20,17 +18,21 @@
         <button onclick="signup()">Sign Up</button>
     </div>
 
-    <button onclick="toggleDrawer()">Toggle Online Users</button>
-    <div id="drawer" style="display: none;">
-        <h2>Online Users</h2>
-        <ul id="online-users"></ul>
-    </div>
+    <div id="chat-ui" style="display: none;">
+        <div id="tabs">
+            <button onclick="switchTab('group')">Group Chat</button>
+            <button onclick="switchTab('private')">Private Chat</button>
+        </div>
 
-    <div id="chat-container">
-        <h3>Group Chat</h3>
-        <div id="chat-box"></div>
-        <input type="text" id="chat-message" placeholder="Type a message">
-        <button onclick="sendGroupMessage()">Send</button>
-    </div>
-</body>
-</html>
+        <button onclick="toggleDrawer()">Toggle Online Users</button>
+        <div id="drawer" style="display: none;">
+            <h2>Online Users</h2>
+            <ul id="online-users"></ul>
+        </div>
+
+        <div id="chat-container">
+            <h3 id="chat-title">Group Chat</h3>
+            <div id="chat-box"></div>
+            <input type="text" id="chat-message" placeholder="Type a message">
+            <button onclick="sendGroupMessage()">Send</button>
+        </div>
