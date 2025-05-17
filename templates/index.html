@@ -1,109 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group Chat</title>
-    <!-- Load the Socket.IO client library -->
+    <title>Chat App</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { font-family: "Arial", sans-serif; background: #f4f4f4; text-align: center; }
-        #chatBox { width: 80%; height: 350px; border-radius: 8px; background: #fff; padding: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.2); overflow-y: auto; margin: 10px auto; text-align: left; }
-        #messageInput { width: 75%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        #sendButton { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .message { 
-            display: block;  /* Ensures each message appears on a new line */
-            background: #e3f2fd;
-            padding: 8px;
-            border-radius: 8px;
-            margin: 5px 0;
-            text-align: left;
-            width: fit-content;
-            max-width: 90%;
-        }
-        .timestamp { color: gray; font-size: 0.8em; margin-left: 10px; }
-        #typingIndicator { font-style: italic; color: gray; display: none; }
+        /* Styles for the UI */
     </style>
 </head>
 <body>
-    <h2>Welcome to Group Chat</h2>
-    <div id="nameSection">
-        <input type="text" id="nameInput" placeholder="Enter your name">
-        <button id="joinButton">Join Chat</button>
+    <div id="authSection">
+        <input type="text" id="usernameInput" placeholder="Username">
+        <input type="password" id="passwordInput" placeholder="Password">
+        <button id="signupButton">Sign Up</button>
+        <button id="loginButton">Login</button>
     </div>
 
     <div id="chatSection" style="display: none;">
-        <div id="typingIndicator">User is typing...</div>
         <div id="chatBox"></div>
         <input type="text" id="messageInput" placeholder="Type a message">
         <button id="sendButton">Send</button>
+        <div id="userList"></div>
+        <div id="favorites"></div>
     </div>
 
-    <!-- JavaScript placed at the end for proper loading -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            console.log("DEBUG: JavaScript loaded successfully!");  
-            const socket = io.connect(window.location.origin); 
-            let userName = "";
+        const socket = io.connect(window.location.origin);
+        let username = "";
 
-            function joinChat() {
-                console.log("DEBUG: joinChat() called"); 
-                userName = document.getElementById("nameInput").value.trim();
-                if (userName) {
-                    console.log("DEBUG: User entered name →", userName);  
-                    document.getElementById("nameSection").style.display = "none";  
-                    document.getElementById("chatSection").style.display = "block";  
-                    socket.emit("join", userName);  
-                } else {
-                    console.error("ERROR: No name entered!");  
-                }
-            }
-
-            function sendMessage() {
-                console.log("DEBUG: sendMessage() called");  
-                const message = document.getElementById("messageInput").value.trim();
-                if (message) {
-                    const timestamp = new Date().toLocaleTimeString();
-                    socket.send(`${userName} [${timestamp}]: ${message}`);
-                    document.getElementById("messageInput").value = "";
-                }
-            }
-
-            // Load chat history on join
-            socket.on("chat_history", (history) => {
-                console.log("DEBUG: Chat history received →", history);  
-                const chatBox = document.getElementById("chatBox");
-
-                history.forEach(([username, msg, timestamp]) => {
-                    const messageElement = document.createElement("p");
-                    messageElement.classList.add("message");
-                    messageElement.style.display = "block"; 
-                    messageElement.textContent = `${username} [${timestamp}]: ${msg}`;
-                    chatBox.appendChild(messageElement);
-                });
-
-                chatBox.scrollTop = chatBox.scrollHeight;  // Auto-scroll to latest messages
+        document.getElementById("loginButton").addEventListener("click", () => {
+            username = document.getElementById("usernameInput").value;
+            fetch("/login", { method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({username, password: document.getElementById("passwordInput").value})
+            }).then(res => res.json()).then(data => {
+                if (data.status === "success") {
+                    document.getElementById("authSection").style.display = "none";
+                    document.getElementById("chatSection").style.display = "block";
+                    socket.emit("join", username);
+                } else alert(data.message);
             });
+        });
 
-            socket.on("message", (msg) => {
-                console.log("DEBUG: Message received →", msg);  
-                const chatBox = document.getElementById("chatBox");
-                const messageElement = document.createElement("p");
-                messageElement.classList.add("message");
-                messageElement.style.display = "block"; 
-                messageElement.textContent = msg;
-                chatBox.appendChild(messageElement);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
+        document.getElementById("sendButton").addEventListener("click", () => {
+            const message = document.getElementById("messageInput").value;
+            socket.send(`${username}: ${message}`);
+        });
 
-            document.getElementById("joinButton").addEventListener("click", joinChat);
-            document.getElementById("sendButton").addEventListener("click", sendMessage);
-            document.getElementById("messageInput").addEventListener("keypress", function(event) {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    sendMessage();
-                }
+        socket.on("chat_history", (history) => {
+            const chatBox = document.getElementById("chatBox");
+            history.forEach(([sender, msg, timestamp]) => {
+                chatBox.innerHTML += `<p>${sender} [${timestamp}]: ${msg}</p>`;
             });
+        });
+
+        socket.on("message", (msg) => {
+            document.getElementById("chatBox").innerHTML += `<p>${msg}</p>`;
         });
     </script>
 </body>
