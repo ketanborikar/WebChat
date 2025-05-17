@@ -26,4 +26,50 @@
         <button id="sendButton">Send</button>
     </div>
 
-    <!-- JavaScript
+    <!-- JavaScript placed at the end of the body for proper loading -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const socket = io.connect(window.location.origin); 
+            let userName = "";
+
+            function joinChat() {
+                console.log("joinChat() called"); // Debugging log
+                userName = document.getElementById("nameInput").value.trim();
+                if (userName) {
+                    document.getElementById("nameSection").style.display = "none";
+                    document.getElementById("chatSection").style.display = "block";
+                    socket.emit("join", userName);  // Notify server
+                }
+            }
+
+            function sendMessage() {
+                console.log("sendMessage() called"); // Debugging log
+                const message = document.getElementById("messageInput").value.trim();
+                if (message) {
+                    socket.send(`${userName}: ${message}`);
+                    document.getElementById("messageInput").value = "";
+                }
+            }
+
+            // Load chat history on join
+            socket.on("chat_history", (history) => {
+                console.log("Chat history received"); // Debugging log
+                const chatBox = document.getElementById("chatBox");
+                history.forEach((msg) => {
+                    const messageElement = document.createElement("p");
+                    messageElement.textContent = msg;
+                    chatBox.appendChild(messageElement);
+                });
+            });
+
+            socket.on("message", (msg) => {
+                console.log("Message received:", msg); // Debugging log
+                const chatBox = document.getElementById("chatBox");
+                const messageElement = document.createElement("p");
+                messageElement.textContent = msg;
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            window.addEventListener("beforeunload", function() {
+                console.log("User leaving the chat"); // Debugging log
