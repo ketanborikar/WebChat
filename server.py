@@ -13,15 +13,47 @@ DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tl
 def connect_db():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
+# User authentication
+@app.route("/signup", methods=["POST"])
+def signup():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_pw))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "User registered successfully!"})
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM users WHERE username=%s", (username,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user and bcrypt.check_password_hash(user[0], password):
+        return jsonify({"message": "Login successful!", "username": username})
+    else:
+        return jsonify({"message": "Invalid credentials"}), 401
+
+# Handle private messaging
 @socketio.on("private_message")
 def handle_private_message(data):
     sender = data.get("sender")
     receiver = data.get("receiver")
     message = data.get("message")
 
-    print(f"🔍 Server Log: Received private message from {sender} to {receiver}: {message}")  # ✅ Debugging log
-
-    # ✅ Store private messages in the database
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (sender, receiver, message) VALUES (%s, %s, %s)", (sender, receiver, message))

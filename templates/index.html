@@ -1,47 +1,122 @@
-<script>
-function startPrivateChat(receiver) {
-    const chatWindow = window.open("", receiver, "width=400,height=500");
-    const popupHTML = `
-        <h3>Private Chat with ${receiver}</h3>
-        <div id="privateChatBox"></div>
-        <input type="text" id="privateMessageInput" placeholder="Type message">
-        <button id="privateSendButton">Send</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Group Chat</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
 
-        <script>
-            (function(){
-                const socket = io.connect("${window.location.origin}");
-                const userName = "${userName}"; // ✅ Ensure username is passed correctly
-                
-                function sendPrivateMessage() {
-                    const message = document.getElementById("privateMessageInput").value.trim();
-                    console.log("🔍 Sending private message:", message);  // ✅ Debug log
-                    
-                    if (message) {
-                        socket.emit("private_message", { sender: userName, receiver: "${receiver}", message });
-                        document.getElementById("privateMessageInput").value = "";
-                    }
-                }
+    <!-- Authentication -->
+    <div id="auth">
+        <h2>Login / Sign Up</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="signup()">Sign Up</button>
+        <button onclick="login()">Login</button>
+    </div>
 
-                document.getElementById("privateSendButton").addEventListener("click", sendPrivateMessage);
-                document.getElementById("privateMessageInput").addEventListener("keydown", function(e) {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        sendPrivateMessage();
-                    }
-                });
+    <!-- Chat Interface (Hidden until login) -->
+    <div id="chat" style="display:none;">
+        <div id="tabs">
+            <button onclick="switchTab('group')">Group Chat</button>
+            <button onclick="switchTab('private')">Private Messages</button>
+        </div>
 
-                socket.on("private_${receiver}", function(msg) {
-                    console.log("🔍 Received private message:", msg);  // ✅ Debug log
-                    const chatBox = document.getElementById("privateChatBox");
-                    const msgElem = document.createElement("p");
-                    msgElem.classList.add("private-message");
-                    msgElem.textContent = msg;
-                    chatBox.appendChild(msgElem);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                });
-            })();
-        <\/script>
-    `;
-    chatWindow.document.write(popupHTML);
-}
-</script>
+        <div id="groupChat" class="tab">Main Group Chat Here...</div>
+        <div id="privateChat" class="tab" style="display:none;">Private Chat Interface</div>
+
+        <!-- Users List (Auto-hide functionality) -->
+        <div id="usersPanel" style="display:none;">
+            <h3>Active Users</h3>
+            <ul id="usersList"></ul>
+            <button onclick="toggleUsers()">Hide Users</button>
+        </div>
+        <button onclick="toggleUsers()">Show Users</button>
+    </div>
+
+    <script>
+        const socket = io.connect(window.location.origin);
+
+        function signup() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            }).then(response => response.json())
+              .then(data => alert(data.message));
+        }
+
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.username) {
+                      localStorage.setItem("username", data.username);
+                      document.getElementById("auth").style.display = "none";
+                      document.getElementById("chat").style.display = "block";
+                  }
+              });
+        }
+
+        function switchTab(tab) {
+            document.getElementById("groupChat").style.display = tab === "group" ? "block" : "none";
+            document.getElementById("privateChat").style.display = tab === "private" ? "block" : "none";
+        }
+
+        function toggleUsers() {
+            const panel = document.getElementById("usersPanel");
+            panel.style.display = panel.style.display === "none" ? "block" : "none";
+        }
+
+        function startPrivateChat(receiver) {
+            const chatWindow = window.open("", receiver, "width=400,height=500");
+            const popupHTML = `
+                <h3>Private Chat with ${receiver}</h3>
+                <div id="privateChatBox"></div>
+                <input type="text" id="privateMessageInput" placeholder="Type message">
+                <button id="privateSendButton">Send</button>
+
+                <script>
+                    (function(){
+                        const socket = io.connect("${window.location.origin}");
+                        const userName = "${localStorage.getItem("username")}";
+
+                        function sendPrivateMessage() {
+                            const message = document.getElementById("privateMessageInput").value.trim();
+                            if (message) {
+                                socket.emit("private_message", { sender: userName, receiver: "${receiver}", message });
+                                document.getElementById("privateMessageInput").value = "";
+                            }
+                        }
+
+                        document.getElementById("privateSendButton").addEventListener("click", sendPrivateMessage);
+                        document.getElementById("privateMessageInput").addEventListener("keydown", function(e) {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                sendPrivateMessage();
+                            }
+                        });
+
+                        socket.on("private_${receiver}", function(msg) {
+                            const chatBox = document.getElementById("privateChatBox");
+                            const msgElem = document.createElement("p");
+                            msgElem.textContent = msg;
+                            chatBox.appendChild(msgElem);
+                        });
+                    })();
+                <\/script>
+            `;
+            chatWindow.document.write(popupHTML);
+        }
+    </script>
+</body>
+</html>
