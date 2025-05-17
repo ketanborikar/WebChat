@@ -3,7 +3,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room
-from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required, verify_jwt_in_request
 import config
 
 app = Flask(__name__, template_folder="templates")
@@ -18,11 +18,16 @@ online_users = set()  # Store online users dynamically
 def home():
     return "Chat service is running!"
 
-@app.route("/chat")  # ✅ Temporarily removed @jwt_required() to test authentication
+@app.route("/chat")
 def chat_page():
-    current_user = get_jwt_identity()
-    print(f"Received JWT identity: {current_user}")  # ✅ Debugging log
-    return render_template("index.html", username=current_user)
+    try:
+        verify_jwt_in_request()  # ✅ Ensure the JWT token is verified before retrieving identity
+        current_user = get_jwt_identity()
+        print(f"Received JWT identity: {current_user}")  # ✅ Debugging log
+        return render_template("index.html", username=current_user)
+    except Exception as e:
+        print(f"JWT verification failed: {str(e)}")  # ✅ Debugging log
+        return jsonify({"message": "Unauthorized access"}), 401
 
 @app.route("/login", methods=["POST"])
 def login():
