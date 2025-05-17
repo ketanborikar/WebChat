@@ -1,39 +1,69 @@
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const socket = io.connect(window.location.origin); 
-        let userName = "";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat</title>
+    <!-- Load the Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #chatBox { width: 80%; height: 300px; border: 1px solid #ccc; overflow-y: auto; margin: 10px auto; padding: 10px; text-align: left; }
+        #messageInput { width: 75%; padding: 8px; }
+        #sendButton { padding: 8px 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Welcome to Group Chat</h2>
+    <div id="nameSection">
+        <input type="text" id="nameInput" placeholder="Enter your name">
+        <button id="joinButton">Join Chat</button>
+    </div>
 
-        function joinChat() {
-            userName = document.getElementById("nameInput").value.trim();
-            if (userName) {
-                document.getElementById("nameSection").style.display = "none";
-                document.getElementById("chatSection").style.display = "block";
-                socket.emit("join", userName);  // Notify server
+    <div id="chatSection" style="display: none;">
+        <div id="chatBox"></div>
+        <input type="text" id="messageInput" placeholder="Type a message">
+        <button id="sendButton">Send</button>
+    </div>
+
+    <!-- JavaScript placed at the end of the body for proper loading -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const socket = io.connect(window.location.origin); 
+            let userName = "";
+
+            function joinChat() {
+                userName = document.getElementById("nameInput").value.trim();
+                if (userName) {
+                    document.getElementById("nameSection").style.display = "none";
+                    document.getElementById("chatSection").style.display = "block";
+                    socket.emit("join", userName);  // Notify server
+                }
             }
-        }
 
-        function sendMessage() {
-            const message = document.getElementById("messageInput").value.trim();
-            if (message) {
-                socket.send(`${userName}: ${message}`);
-                document.getElementById("messageInput").value = "";
+            function sendMessage() {
+                const message = document.getElementById("messageInput").value.trim();
+                if (message) {
+                    socket.send(`${userName}: ${message}`);
+                    document.getElementById("messageInput").value = "";
+                }
             }
-        }
 
-        socket.on("message", (msg) => {
-            const chatBox = document.getElementById("chatBox");
-            const messageElement = document.createElement("p");
-            messageElement.textContent = msg;
-            chatBox.appendChild(messageElement);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            socket.on("message", (msg) => {
+                const chatBox = document.getElementById("chatBox");
+                const messageElement = document.createElement("p");
+                messageElement.textContent = msg;
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            window.addEventListener("beforeunload", function() {
+                socket.emit("leave", userName);  // Notify when closing the site
+            });
+
+            document.getElementById("joinButton").addEventListener("click", joinChat);
+            document.getElementById("sendButton").addEventListener("click", sendMessage);
         });
-
-        window.addEventListener("beforeunload", function() {
-            socket.emit("leave", userName);  // Notify when closing the site
-        });
-
-        // Ensure buttons reference existing functions
-        document.getElementById("nameInput").nextElementSibling.addEventListener("click", joinChat);
-        document.getElementById("sendButton").addEventListener("click", sendMessage);
-    });
-</script>
+    </script>
+</body>
+</html>
