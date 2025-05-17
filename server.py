@@ -8,7 +8,7 @@ app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app, cors_allowed_origins="*")
 bcrypt = Bcrypt(app)
 
-# ✅ Fixed Database Connection Parsing
+# ✅ Fixed: Properly formatted database connection
 DATABASE_CONFIG = {
     "dbname": "neondb",
     "user": "neondb_owner",
@@ -26,8 +26,9 @@ def handle_private_message(data):
     receiver = data.get("receiver")
     message = data.get("message")
 
-    print(f"🔍 Server Log: Received private message from {sender} to {receiver}: {message}")
+    print(f"🔍 Server Log: Received private message from {sender} to {receiver}: {message}")  # ✅ Debugging log
 
+    # ✅ Store private messages in the database
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (sender, receiver, message) VALUES (%s, %s, %s)", (sender, receiver, message))

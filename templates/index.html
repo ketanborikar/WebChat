@@ -1,7 +1,7 @@
 <script>
 function startPrivateChat(receiver) {
     const chatWindow = window.open("", receiver, "width=400,height=500");
-    const username = localStorage.getItem("username");  // ✅ Ensure username is correctly retrieved
+    const username = localStorage.getItem("username");  // ✅ Fixed: Properly retrieve username
 
     const popupHTML = `
         <h3>Private Chat with ${receiver}</h3>
@@ -12,11 +12,11 @@ function startPrivateChat(receiver) {
         <script>
             (function(){
                 const socket = io.connect("${window.location.origin}");
-                const userName = "${username}"; // ✅ Fixed username retrieval
+                const userName = "${username}"; // ✅ Fixed: Correctly inject username
                 
                 function sendPrivateMessage() {
                     const message = document.getElementById("privateMessageInput").value.trim();
-                    console.log("🔍 Sending private message:", message);
+                    console.log("🔍 Sending private message:", message);  // ✅ Debug log
                     
                     if (message) {
                         socket.emit("private_message", { sender: userName, receiver: "${receiver}", message });
@@ -33,7 +33,7 @@ function startPrivateChat(receiver) {
                 });
 
                 socket.on("private_${receiver}", function(msg) {
-                    console.log("🔍 Received private message:", msg);
+                    console.log("🔍 Received private message:", msg);  // ✅ Debug log
                     const chatBox = document.getElementById("privateChatBox");
                     const msgElem = document.createElement("p");
                     msgElem.classList.add("private-message");
