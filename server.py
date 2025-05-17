@@ -8,7 +8,7 @@ app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # NeonDB Connection String
-DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL = "postgresql://neondb_owner:npg_VX5T9BpaSOlP@ep-twilight-wave-a1cpdb3q-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
 # Connect to NeonDB
 def connect_db():
