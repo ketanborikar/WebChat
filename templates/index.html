@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Chat App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        /* Styles for the UI */
+    </style>
+</head>
+<body>
+    <div id="authSection">
+        <input type="text" id="usernameInput" placeholder="Username">
+        <input type="password" id="passwordInput" placeholder="Password">
+        <button id="signupButton">Sign Up</button>
+        <button id="loginButton">Login</button>
+    </div>
+
+    <div id="chatSection" style="display: none;">
+        <div id="chatBox"></div>
+        <input type="text" id="messageInput" placeholder="Type a message">
+        <button id="sendButton">Send</button>
+        <div id="userList"></div>
+        <div id="favorites"></div>
+    </div>
+
+    <script>
+        const socket = io.connect(window.location.origin);
+        let username = "";
+
+        document.getElementById("loginButton").addEventListener("click", () => {
+            username = document.getElementById("usernameInput").value;
+            fetch("/login", { method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({username, password: document.getElementById("passwordInput").value})
+            }).then(res => res.json()).then(data => {
+                if (data.status === "success") {
+                    document.getElementById("authSection").style.display = "none";
+                    document.getElementById("chatSection").style.display = "block";
+                    socket.emit("join", username);
+                } else alert(data.message);
+            });
+        });
+
+        document.getElementById("sendButton").addEventListener("click", () => {
+            const message = document.getElementById("messageInput").value;
+            socket.send(`${username}: ${message}`);
+        });
+
+        socket.on("chat_history", (history) => {
+            const chatBox = document.getElementById("chatBox");
+            history.forEach(([sender, msg, timestamp]) => {
+                chatBox.innerHTML += `<p>${sender} [${timestamp}]: ${msg}</p>`;
+            });
+        });
+
+        socket.on("message", (msg) => {
+            document.getElementById("chatBox").innerHTML += `<p>${msg}</p>`;
+        });
+    </script>
+</body>
+</html>
