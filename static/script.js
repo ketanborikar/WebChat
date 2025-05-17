@@ -1,3 +1,6 @@
+// ✅ Define WebSocket before using it
+const socket = io("https://webchat-yoaw.onrender.com");
+
 document.addEventListener("DOMContentLoaded", function() {
     let loginField = document.getElementById("login-password");
     let signupField = document.getElementById("signup-password");
@@ -5,7 +8,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     console.log("DOM fully loaded, checking elements...");
 
-    // Ensure each element exists before adding event listeners
     if (loginField) {
         console.log("Login field found, adding event listener...");
         loginField.addEventListener("keypress", function(event) {
@@ -89,6 +91,7 @@ function sendGroupMessage() {
     let content = inputField.value;
 
     if (content.trim() !== "") {
+        console.log("Sending message:", content);
         socket.emit("message", { sender: localStorage.getItem("username"), group: "main", content });
         inputField.value = ""; // ✅ Clears input after sending
     }
