@@ -60,15 +60,17 @@
 
             // Load chat history on join
             socket.on("chat_history", (history) => {
-                console.log("Chat history received");  
+                console.log("Chat history received:", history);  
                 const chatBox = document.getElementById("chatBox");
+
                 history.forEach((msg) => {
                     const messageElement = document.createElement("p");
                     messageElement.classList.add("message");
                     messageElement.textContent = msg;
                     chatBox.appendChild(messageElement);
                 });
-                chatBox.scrollTop = chatBox.scrollHeight;
+
+                chatBox.scrollTop = chatBox.scrollHeight;  // Auto-scroll to latest messages
             });
 
             socket.on("message", (msg) => {
