@@ -10,6 +10,8 @@
         #chatBox { width: 80%; height: 350px; background: #fff; overflow-y: auto; margin: 10px auto; }
         .message { background: #e3f2fd; padding: 8px; border-radius: 8px; margin: 5px 0; }
         .private-message { background: #ffebee; padding: 8px; border-radius: 8px; margin: 5px 0; }
+        #authSection { margin-bottom: 20px; }
+        #chatContainer { display: none; } /* ✅ Hide chat until authenticated */
     </style>
 </head>
 <body>
@@ -54,8 +56,8 @@
                   .then(data => {
                       if (data.message.includes("successful")) {
                           userName = username;
-                          document.getElementById("authSection").style.display = "none";
-                          document.getElementById("chatContainer").style.display = "flex";
+                          document.getElementById("authSection").style.display = "none";  // ✅ Hide login after authentication
+                          document.getElementById("chatContainer").style.display = "flex";  // ✅ Show chat section
                           socket.emit("join", userName);
                       } else {
                           alert(data.message);
@@ -63,6 +65,26 @@
                   });
             }
 
+            // ✅ Ensure `sendMessage` is correctly defined
+            function sendMessage() {
+                const message = document.getElementById("messageInput").value.trim();
+                if (message) {
+                    socket.send(`${userName}: ${message}`);
+                    document.getElementById("messageInput").value = "";
+                }
+            }
+
+            // ✅ Display messages correctly
+            socket.on("message", (msg) => {
+                const chatBox = document.getElementById("chatBox");
+                const messageElement = document.createElement("p");
+                messageElement.classList.add("message");
+                messageElement.textContent = msg;
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // ✅ Handle online users & private chat
             socket.on("update_users", (users) => {
                 const userList = document.getElementById("users");
                 userList.innerHTML = "";
@@ -82,6 +104,22 @@
                     <div id="privateChatBox"></div>
                     <input type="text" id="privateMessageInput" placeholder="Type message">
                     <button onclick="sendPrivateMessage()">Send</button>
+                    <script>
+                        const socket = io.connect("${window.location.origin}");
+                        function sendPrivateMessage() {
+                            const message = document.getElementById("privateMessageInput").value.trim();
+                            if (message) {
+                                socket.emit("private_message", { sender: "${userName}", receiver: "${receiver}", message });
+                                document.getElementById("privateMessageInput").value = "";
+                            }
+                        }
+                        socket.on("private_${receiver}", (msg) => {
+                            const chatBox = document.getElementById("privateChatBox");
+                            const messageElement = document.createElement("p");
+                            messageElement.textContent = msg;
+                            chatBox.appendChild(messageElement);
+                        });
+                    </script>
                 `);
             }
 
