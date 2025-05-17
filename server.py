@@ -5,7 +5,7 @@ from flask_socketio import SocketIO
 app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Create table for chat history
+# Create database table for chat messages
 def setup_db():
     conn = sqlite3.connect("chat.db")
     cursor = conn.cursor()
@@ -30,7 +30,7 @@ def index():
 def handle_join(username):
     conn = sqlite3.connect("chat.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT username, message FROM messages WHERE timestamp >= datetime('now', '-30 days')")
+    cursor.execute("SELECT username, message, timestamp FROM messages WHERE timestamp >= datetime('now', '-30 days')")
     chat_history = cursor.fetchall()
     conn.close()
 
@@ -43,7 +43,7 @@ def handle_join(username):
 def handle_message(data):
     username, msg = data.split(": ", 1)
 
-    # Save message to database
+    # Save message to the database
     conn = sqlite3.connect("chat.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (username, message) VALUES (?, ?)", (username, msg))

@@ -13,6 +13,7 @@
         #sendButton { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
         .message { background: #e3f2fd; padding: 8px; border-radius: 8px; margin: 5px 0; display: inline-block; }
         .timestamp { color: gray; font-size: 0.8em; margin-left: 10px; }
+        #typingIndicator { font-style: italic; color: gray; display: none; }
     </style>
 </head>
 <body>
@@ -23,6 +24,7 @@
     </div>
 
     <div id="chatSection" style="display: none;">
+        <div id="typingIndicator">User is typing...</div>
         <div id="chatBox"></div>
         <input type="text" id="messageInput" placeholder="Type a message">
         <button id="sendButton">Send</button>
@@ -55,6 +57,7 @@
                     const timestamp = new Date().toLocaleTimeString();
                     socket.send(`${userName} [${timestamp}]: ${message}`);
                     document.getElementById("messageInput").value = "";
+                    socket.emit("stopTyping");  // Remove typing indicator
                 }
             }
 
@@ -63,10 +66,10 @@
                 console.log("Chat history received:", history);  
                 const chatBox = document.getElementById("chatBox");
 
-                history.forEach((msg) => {
+                history.forEach(([username, msg, timestamp]) => {
                     const messageElement = document.createElement("p");
                     messageElement.classList.add("message");
-                    messageElement.textContent = msg;
+                    messageElement.textContent = `${username} [${timestamp}]: ${msg}`;
                     chatBox.appendChild(messageElement);
                 });
 
@@ -81,6 +84,25 @@
                 messageElement.textContent = msg;
                 chatBox.appendChild(messageElement);
                 chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // Typing indicator feature
+            document.getElementById("messageInput").addEventListener("input", function() {
+                socket.emit("typing", userName);
+            });
+
+            document.getElementById("messageInput").addEventListener("blur", function() {
+                socket.emit("stopTyping");
+            });
+
+            socket.on("typing", (username) => {
+                const typingIndicator = document.getElementById("typingIndicator");
+                typingIndicator.style.display = "block";
+                typingIndicator.textContent = `${username} is typing...`;
+            });
+
+            socket.on("stopTyping", () => {
+                document.getElementById("typingIndicator").style.display = "none";
             });
 
             window.addEventListener("beforeunload", function() {
