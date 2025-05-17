@@ -1,59 +1,70 @@
-import asyncio
-import websockets
-import json
-import asyncpg
+import psycopg2
 import os
-from datetime import datetime
-from aiohttp import web  # HTTP health check server
+from flask import Flask, render_template
+from flask_socketio import SocketIO
 
-# Get WebSocket port from Render
-WS_PORT = int(os.getenv("PORT", 8765))
-# Separate HTTP health check port
-HTTP_PORT = 8000
+app = Flask(__name__, template_folder="templates")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL = "postgresql://chat_db_bnpo_user:LEltmJ1OYX1mIRZKHKDCGJPDXsEAnx2x@dpg-d0k64ore5dus73bgbnl0-a.oregon-postgres.render.com/chat_db_bnpo"
 
-connected_users = {}
+# Connect to PostgreSQL
+def connect_db():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
 
-async def save_message(sender, content):
-    """Store messages in PostgreSQL."""
-    conn = await asyncpg.connect(DATABASE_URL)
-    await conn.execute("INSERT INTO messages (sender, content, timestamp) VALUES ($1, $2, $3)", sender, content, datetime.utcnow())
-    await conn.close()
+# Create chat history table if it doesn't exist
+def setup_db():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id SERIAL PRIMARY KEY,
+            username TEXT,
+            message TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-async def get_chat_history():
-    """Retrieve chat history from PostgreSQL."""
-    conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT sender, content, timestamp FROM messages ORDER BY timestamp DESC LIMIT 50")
-    await conn.close()
-    return [{"sender": row["sender"], "content": row["content"], "timestamp": row["timestamp"].strftime("%Y-%m-%d %H:%M:%S")} for row in rows]
+setup_db()
 
-async def handler(websocket, path):
-    """Handles WebSocket connections and rejects invalid requests."""
-    if websocket.request_headers.get("Upgrade") != "websocket":
-        await websocket.close()
-        return
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@socketio.on("join")
+def handle_join(username):
+    conn = connect_db()
+    cursor = conn.cursor()
     
-    name = await websocket.recv()
-    connected_users[websocket] = name
+    # Convert timestamps to string format
+    cursor.execute("SELECT username, message, timestamp FROM messages WHERE timestamp >= NOW() - INTERVAL '30 days'")
+    chat_history = cursor.fetchall()
+    conn.close()
 
-    join_msg = json.dumps({"type": "notification", "content": f"{name} has joined the chat."})
-    await asyncio.gather(*[user.send(join_msg) for user in connected_users if user != websocket])
+    # Convert datetime object to string
+    formatted_history = [
+        (username, message, timestamp.strftime("%Y-%m-%d %H:%M:%S")) for username, message, timestamp in chat_history
+    ]
 
-    history = await get_chat_history()
-    await websocket.send(json.dumps({"type": "history", "messages": history}))
+    print("DEBUG: Retrieved Chat History →", formatted_history)  # Debugging log
+    socketio.emit("chat_history", formatted_history)
+    socketio.send(f"**{username} joined the chat**")
 
-    async for message in websocket:
-        msg_data = json.loads(message)
-        sender, content = connected_users[websocket], msg_data["content"]
-        await save_message(sender, content)
+@socketio.on("message")
+def handle_message(data):
+    username, msg = data.split(": ", 1)
 
-        msg_json = json.dumps({"type": "message", "sender": sender, "content": content})
-        await asyncio.gather(*[user.send(msg_json) for user in connected_users])
+    # Save message to PostgreSQL
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO messages (username, message) VALUES (%s, %s)", (username, msg))
+    conn.commit()
+    conn.close()
 
-async def health_check(request):
-    """Simple HTTP health check for Render."""
-    return web.Response(text="OK")
+    print(f"DEBUG: Message saved → {username}: {msg}")  # Debugging log
+    socketio.send(data)
 
-async def start_servers():
-    """Runs both WebSocket and HTTP health check servers
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=5000)

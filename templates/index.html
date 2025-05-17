@@ -1,75 +1,110 @@
-import asyncio
-import websockets
-import json
-import asyncpg
-import os
-from datetime import datetime
-from aiohttp import web  # HTTP health check server
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat</title>
+    <!-- Load the Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { font-family: "Arial", sans-serif; background: #f4f4f4; text-align: center; }
+        #chatBox { width: 80%; height: 350px; border-radius: 8px; background: #fff; padding: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.2); overflow-y: auto; margin: 10px auto; text-align: left; }
+        #messageInput { width: 75%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        #sendButton { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .message { 
+            display: block;  /* Ensures each message appears on a new line */
+            background: #e3f2fd;
+            padding: 8px;
+            border-radius: 8px;
+            margin: 5px 0;
+            text-align: left;
+            width: fit-content;
+            max-width: 90%;
+        }
+        .timestamp { color: gray; font-size: 0.8em; margin-left: 10px; }
+        #typingIndicator { font-style: italic; color: gray; display: none; }
+    </style>
+</head>
+<body>
+    <h2>Welcome to Group Chat</h2>
+    <div id="nameSection">
+        <input type="text" id="nameInput" placeholder="Enter your name">
+        <button id="joinButton">Join Chat</button>
+    </div>
 
-# Get WebSocket port from Render
-WS_PORT = int(os.getenv("PORT", 8765))
-# Separate HTTP health check port
-HTTP_PORT = 8000
+    <div id="chatSection" style="display: none;">
+        <div id="typingIndicator">User is typing...</div>
+        <div id="chatBox"></div>
+        <input type="text" id="messageInput" placeholder="Type a message">
+        <button id="sendButton">Send</button>
+    </div>
 
-DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+    <!-- JavaScript placed at the end for proper loading -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("DEBUG: JavaScript loaded successfully!");  
+            const socket = io.connect(window.location.origin); 
+            let userName = "";
 
-connected_users = {}
+            function joinChat() {
+                console.log("DEBUG: joinChat() called"); 
+                userName = document.getElementById("nameInput").value.trim();
+                if (userName) {
+                    console.log("DEBUG: User entered name →", userName);  
+                    document.getElementById("nameSection").style.display = "none";  
+                    document.getElementById("chatSection").style.display = "block";  
+                    socket.emit("join", userName);  
+                } else {
+                    console.error("ERROR: No name entered!");  
+                }
+            }
 
-async def save_message(sender, content):
-    """Store messages in PostgreSQL."""
-    conn = await asyncpg.connect(DATABASE_URL)
-    await conn.execute("INSERT INTO messages (sender, content, timestamp) VALUES ($1, $2, $3)", sender, content, datetime.utcnow())
-    await conn.close()
+            function sendMessage() {
+                console.log("DEBUG: sendMessage() called");  
+                const message = document.getElementById("messageInput").value.trim();
+                if (message) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    socket.send(`${userName} [${timestamp}]: ${message}`);
+                    document.getElementById("messageInput").value = "";
+                }
+            }
 
-async def get_chat_history():
-    """Retrieve chat history from PostgreSQL."""
-    conn = await asyncpg.connect(DATABASE_URL)
-    rows = await conn.fetch("SELECT sender, content, timestamp FROM messages ORDER BY timestamp DESC LIMIT 50")
-    await conn.close()
-    return [{"sender": row["sender"], "content": row["content"], "timestamp": row["timestamp"].strftime("%Y-%m-%d %H:%M:%S")} for row in rows]
+            // Load chat history on join
+            socket.on("chat_history", (history) => {
+                console.log("DEBUG: Chat history received →", history);  
+                const chatBox = document.getElementById("chatBox");
 
-async def handler(websocket, path):
-    """Handles WebSocket connections and rejects invalid requests."""
-    if websocket.request_headers.get("Upgrade") != "websocket":
-        await websocket.close()
-        return
-    
-    name = await websocket.recv()
-    connected_users[websocket] = name
+                history.forEach(([username, msg, timestamp]) => {
+                    const messageElement = document.createElement("p");
+                    messageElement.classList.add("message");
+                    messageElement.style.display = "block"; 
+                    messageElement.textContent = `${username} [${timestamp}]: ${msg}`;
+                    chatBox.appendChild(messageElement);
+                });
 
-    join_msg = json.dumps({"type": "notification", "content": f"{name} has joined the chat."})
-    await asyncio.gather(*[user.send(join_msg) for user in connected_users if user != websocket])
+                chatBox.scrollTop = chatBox.scrollHeight;  // Auto-scroll to latest messages
+            });
 
-    history = await get_chat_history()
-    await websocket.send(json.dumps({"type": "history", "messages": history}))
+            socket.on("message", (msg) => {
+                console.log("DEBUG: Message received →", msg);  
+                const chatBox = document.getElementById("chatBox");
+                const messageElement = document.createElement("p");
+                messageElement.classList.add("message");
+                messageElement.style.display = "block"; 
+                messageElement.textContent = msg;
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
 
-    async for message in websocket:
-        msg_data = json.loads(message)
-        sender, content = connected_users[websocket], msg_data["content"]
-        await save_message(sender, content)
-
-        msg_json = json.dumps({"type": "message", "sender": sender, "content": content})
-        await asyncio.gather(*[user.send(msg_json) for user in connected_users])
-
-async def health_check(request):
-    """Simple HTTP health check for Render."""
-    return web.Response(text="OK")
-
-async def start_servers():
-    """Runs both WebSocket and HTTP health check servers."""
-    ws_server = await websockets.serve(handler, "0.0.0.0", WS_PORT)
-
-    http_server = web.Application()
-    http_server.router.add_get("/", health_check)
-    runner = web.AppRunner(http_server)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", HTTP_PORT)
-    await site.start()
-
-    print(f"WebSocket server running on port {WS_PORT}...")
-    print(f"HTTP health check running on port {HTTP_PORT}...")
-
-    await asyncio.Future()  # Keeps event loop alive
-
-if __name__ == "__main__":
-    asyncio.run(start_servers())
+            document.getElementById("joinButton").addEventListener("click", joinChat);
+            document.getElementById("sendButton").addEventListener("click", sendMessage);
+            document.getElementById("messageInput").addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
