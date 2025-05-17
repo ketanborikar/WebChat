@@ -2,11 +2,15 @@ import asyncio
 import websockets
 import json
 import asyncpg
+import os
 from datetime import datetime
+
+# Get port from Render's environment variable
+PORT = int(os.getenv("PORT", 8765))  
 
 DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
-# Active connections
+# Active connections dictionary
 connected_users = {}
 
 async def save_message(sender, content):
@@ -58,4 +62,9 @@ async def handler(websocket, path):
             del connected_users[websocket]
             await asyncio.gather(*[user.send(leave_msg) for user in connected_users])
 
-# Start WebSocket
+# Start WebSocket server using Render's provided port
+start_server = websockets.serve(handler, "0.0.0.0", PORT)
+
+print(f"WebSocket server started on port {PORT}...")
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
