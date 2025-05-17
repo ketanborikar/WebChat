@@ -1,4 +1,3 @@
-// ✅ Define WebSocket before using it
 const socket = io("https://webchat-yoaw.onrender.com");
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -37,7 +36,13 @@ function login() {
     let username = document.getElementById("login-username").value;
     let password = document.getElementById("login-password").value;
 
-    document.getElementById("loading").style.display = "block"; // ✅ Show spinner
+    let loadingSpinner = document.getElementById("loading");
+
+    if (loadingSpinner) {
+        loadingSpinner.style.display = "block"; // ✅ Show spinner only if it exists
+    } else {
+        console.log("Error: 'loading' element not found."); // ✅ Debugging log
+    }
 
     fetch("https://webchat-yoaw.onrender.com/auth/login", {
         method: "POST",
@@ -45,7 +50,9 @@ function login() {
         body: JSON.stringify({ username, password })
     }).then(response => response.json())
       .then(data => {
-          document.getElementById("loading").style.display = "none"; // ✅ Hide spinner
+          if (loadingSpinner) {
+              loadingSpinner.style.display = "none"; // ✅ Hide spinner after login
+          }
 
           if (data.access_token) {
               localStorage.setItem("token", data.access_token);
@@ -55,16 +62,4 @@ function login() {
               document.getElementById("chat-ui").style.display = "block";
           }
       });
-}
-
-function sendGroupMessage() {
-    let inputField = document.getElementById("chat-message");
-    let content = inputField.value.trim();
-
-    if (content !== "") {
-        console.log("Sending message:", content);
-        socket.emit("message", { sender: localStorage.getItem("username"), group: "main", content });
-
-        inputField.value = ""; // ✅ Clears input field after sending
-    }
 }
