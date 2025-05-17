@@ -17,7 +17,8 @@ def handle_message(data):
     sender_user = session.query(User).filter_by(username=data['sender']).first()
     if not sender_user:
         print("Error: Sender user not found")
-        return jsonify({"error": "Sender user not found"}), 400
+        socketio.emit('error', {"error": "Sender user not found"})
+        return
 
     # Store message in database
     new_message = Message(
@@ -32,5 +33,6 @@ def handle_message(data):
     
     print("Message saved successfully!")
 
-    # Broadcast the message back to all clients
+    # ✅ Send confirmation response
     socketio.emit('message', data)
+    return {"status": "success", "message": "Message stored"}
