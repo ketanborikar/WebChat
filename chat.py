@@ -10,13 +10,18 @@ socketio = SocketIO(cors_allowed_origins="*")
 def handle_message(data):
     session = SessionLocal()
 
-    # Retrieve sender's user ID
+    # Debugging log to confirm message receipt
+    print(f"Received WebSocket message: {data}")
+
+    # Fetch sender user ID from the database
     sender_user = session.query(User).filter_by(username=data['sender']).first()
     if not sender_user:
+        print("Error: Sender user not found")
         return jsonify({"error": "Sender user not found"}), 400
 
+    # Store message in database
     new_message = Message(
-        sender_id=sender_user.id,  # ✅ Store numeric ID instead of username
+        sender_id=sender_user.id,
         receiver_id=data.get('receiver'),
         group=data.get('group'),
         content=data['content']
@@ -24,5 +29,8 @@ def handle_message(data):
 
     session.add(new_message)
     session.commit()
+    
+    print("Message saved successfully!")
 
+    # Broadcast the message back to all clients
     socketio.emit('message', data)
