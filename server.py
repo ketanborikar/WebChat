@@ -4,15 +4,15 @@ import json
 import asyncpg
 import os
 from datetime import datetime
-from aiohttp import web  # New HTTP endpoint for health checks
+from aiohttp import web  # HTTP server for health checks
 
-# Get port from Render's environment variable
-PORT = int(os.getenv("PORT", 8765))  
-HTTP_PORT = 8000  # Separate port for health checks
+# Get WebSocket port from Render
+WS_PORT = int(os.getenv("PORT", 8765))  
+# Separate HTTP health check port (Render expects HTTP for health check requests)
+HTTP_PORT = 8000  
 
 DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
-# Active connections dictionary
 connected_users = {}
 
 async def save_message(sender, content):
@@ -29,41 +29,32 @@ async def get_chat_history():
     return [{"sender": row["sender"], "content": row["content"], "timestamp": row["timestamp"].strftime("%Y-%m-%d %H:%M:%S")} for row in rows]
 
 async def handler(websocket, path):
-    """Handle incoming WebSocket connections and messages."""
-    try:
-        name = await websocket.recv()
-        connected_users[websocket] = name
+    """Handles WebSocket connections only."""
+    name = await websocket.recv()
+    connected_users[websocket] = name
 
-        join_msg = json.dumps({"type": "notification", "content": f"{name} has joined the chat."})
-        await asyncio.gather(*[user.send(join_msg) for user in connected_users if user != websocket])
+    join_msg = json.dumps({"type": "notification", "content": f"{name} has joined the chat."})
+    await asyncio.gather(*[user.send(join_msg) for user in connected_users if user != websocket])
 
-        history = await get_chat_history()
-        await websocket.send(json.dumps({"type": "history", "messages": history}))
+    history = await get_chat_history()
+    await websocket.send(json.dumps({"type": "history", "messages": history}))
 
-        async for message in websocket:
-            msg_data = json.loads(message)
-            sender, content = connected_users[websocket], msg_data["content"]
-            await save_message(sender, content)
+    async for message in websocket:
+        msg_data = json.loads(message)
+        sender, content = connected_users[websocket], msg_data["content"]
+        await save_message(sender, content)
 
-            msg_json = json.dumps({"type": "message", "sender": sender, "content": content})
-            await asyncio.gather(*[user.send(msg_json) for user in connected_users])
-
-    except websockets.exceptions.ConnectionClosed:
-        pass
-
-    finally:
-        if websocket in connected_users:
-            leave_msg = json.dumps({"type": "notification", "content": f"{connected_users[websocket]} has left the chat."})
-            del connected_users[websocket]
-            await asyncio.gather(*[user.send(leave_msg) for user in connected_users])
+        msg_json = json.dumps({"type": "message", "sender": sender, "content": content})
+        await asyncio.gather(*[user.send(msg_json) for user in connected_users])
 
 async def health_check(request):
-    """Simple HTTP endpoint for Render health checks."""
+    """Simple HTTP health check for Render."""
     return web.Response(text="OK")
 
-async def main():
-    """Ensure WebSocket server & health check run correctly."""
-    ws_server = await websockets.serve(handler, "0.0.0.0", PORT)
+async def start_servers():
+    """Runs both WebSocket and HTTP health check servers."""
+    ws_server = await websockets.serve(handler, "0.0.0.0", WS_PORT)
+
     http_server = web.Application()
     http_server.router.add_get("/", health_check)
     runner = web.AppRunner(http_server)
@@ -71,10 +62,10 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", HTTP_PORT)
     await site.start()
 
-    print(f"WebSocket server started on port {PORT}...")
+    print(f"WebSocket server running on port {WS_PORT}...")
     print(f"HTTP health check running on port {HTTP_PORT}...")
-    
-    await asyncio.Future()  # Keeps the event loop running
+
+    await asyncio.Future()  # Keeps event loop alive
 
 if __name__ == "__main__":
-    asyncio.run(main())  # Starts the event loop correctly
+    asyncio.run(start_servers())
