@@ -10,7 +10,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 bcrypt = Bcrypt(app)
 
 # NeonDB Connection String
-DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL = "postgresql://neondb_owner:password@ep-your-neondb-url/neondb?sslmode=require"
 
 # Connect to NeonDB
 def connect_db():
@@ -38,6 +38,9 @@ def setup_db():
     conn.close()
 
 setup_db()
+
+# Track online users
+online_users = set()
 
 @app.route("/")
 def index():
@@ -81,16 +84,17 @@ def login():
 # 🔹 **Group Chat Join**
 @socketio.on("join")
 def handle_join(username):
-    conn = connect_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT sender, message, timestamp FROM messages WHERE receiver IS NULL ORDER BY timestamp DESC LIMIT 50")
-    chat_history = cursor.fetchall()
-    conn.close()
-
-    formatted_history = [(sender, msg, timestamp.strftime("%Y-%m-%d %H:%M:%S")) for sender, msg, timestamp in chat_history]
-
-    socketio.emit("chat_history", formatted_history)
+    online_users.add(username)
+    socketio.emit("update_users", list(online_users))  # Send user list to all clients
     socketio.send(f"**{username} joined the chat**")
+
+# 🔹 **Handle Disconnects**
+@socketio.on("disconnect")
+def handle_disconnect():
+    global online_users
+    for user in online_users.copy():
+        online_users.remove(user)
+    socketio.emit("update_users", list(online_users))  # Update user list on disconnect
 
 # 🔹 **Handling Messages (Group & Private)**
 @socketio.on("message")
@@ -101,7 +105,7 @@ def handle_message(data):
     if msg.startswith("@"):
         parts = msg.split(" ", 1)
         if len(parts) == 2:
-            receiver = parts[0][1:]  # Extract username
+            receiver = parts[0][1:]
             msg = parts[1]
 
     conn = connect_db()
