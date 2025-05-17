@@ -53,9 +53,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.token) {
-                    localStorage.setItem("jwt", data.token);
+                    localStorage.setItem("jwt", data.token);  // ✅ Save token
                     document.getElementById("auth").style.display = "none";
                     document.getElementById("chat-container").style.display = "block";
+                    loadUsers(); // Load online users
                 } else {
                     alert("Login failed!");
                 }
