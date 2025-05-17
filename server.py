@@ -34,4 +34,39 @@ async def handler(websocket, path):
         connected_users[websocket] = name
 
         # Notify users of the new connection
-        join_msg = json.dumps({"type": "notification", "content": f"{name} has joined
+        join_msg = json.dumps({"type": "notification", "content": f"{name} has joined the chat."})
+        await asyncio.gather(*[user.send(join_msg) for user in connected_users if user != websocket])
+
+        # Send chat history
+        history = await get_chat_history()
+        await websocket.send(json.dumps({"type": "history", "messages": history}))
+
+        async for message in websocket:
+            msg_data = json.loads(message)
+            sender, content = connected_users[websocket], msg_data["content"]
+
+            # Store message in database
+            await save_message(sender, content)
+
+            # Broadcast message to all users
+            msg_json = json.dumps({"type": "message", "sender": sender, "content": content})
+            await asyncio.gather(*[user.send(msg_json) for user in connected_users])
+
+    except websockets.exceptions.ConnectionClosed:
+        pass
+
+    finally:
+        # Remove user and notify others
+        if websocket in connected_users:
+            leave_msg = json.dumps({"type": "notification", "content": f"{connected_users[websocket]} has left the chat."})
+            del connected_users[websocket]
+            await asyncio.gather(*[user.send(leave_msg) for user in connected_users])
+
+async def main():
+    """Ensure the WebSocket server runs inside an event loop."""
+    async with websockets.serve(handler, "0.0.0.0", PORT):
+        print(f"WebSocket server started on port {PORT}...")
+        await asyncio.Future()  # Keeps the event loop running
+
+if __name__ == "__main__":
+    asyncio.run(main())  # Starts the event loop correctly
