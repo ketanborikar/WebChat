@@ -42,37 +42,36 @@
     <!-- JavaScript placed at the end for proper loading -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            console.log("JavaScript loaded successfully!");  
+            console.log("DEBUG: JavaScript loaded successfully!");  
             const socket = io.connect(window.location.origin); 
             let userName = "";
 
             function joinChat() {
-                console.log("joinChat() called"); 
+                console.log("DEBUG: joinChat() called"); 
                 userName = document.getElementById("nameInput").value.trim();
                 if (userName) {
-                    console.log("User entered name:", userName);  
+                    console.log("DEBUG: User entered name →", userName);  
                     document.getElementById("nameSection").style.display = "none";  
                     document.getElementById("chatSection").style.display = "block";  
                     socket.emit("join", userName);  
                 } else {
-                    console.error("No name entered!");  
+                    console.error("ERROR: No name entered!");  
                 }
             }
 
             function sendMessage() {
-                console.log("sendMessage() called");  
+                console.log("DEBUG: sendMessage() called");  
                 const message = document.getElementById("messageInput").value.trim();
                 if (message) {
                     const timestamp = new Date().toLocaleTimeString();
                     socket.send(`${userName} [${timestamp}]: ${message}`);
                     document.getElementById("messageInput").value = "";
-                    socket.emit("stopTyping");  // Remove typing indicator
                 }
             }
 
             // Load chat history on join
             socket.on("chat_history", (history) => {
-                console.log("Chat history received:", history);  
+                console.log("DEBUG: Chat history received →", history);  
                 const chatBox = document.getElementById("chatBox");
 
                 history.forEach(([username, msg, timestamp]) => {
@@ -87,7 +86,7 @@
             });
 
             socket.on("message", (msg) => {
-                console.log("Message received:", msg);  
+                console.log("DEBUG: Message received →", msg);  
                 const chatBox = document.getElementById("chatBox");
                 const messageElement = document.createElement("p");
                 messageElement.classList.add("message");

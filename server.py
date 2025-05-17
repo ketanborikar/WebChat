@@ -37,12 +37,19 @@ def index():
 def handle_join(username):
     conn = connect_db()
     cursor = conn.cursor()
+    
+    # Convert timestamps to string format
     cursor.execute("SELECT username, message, timestamp FROM messages WHERE timestamp >= NOW() - INTERVAL '30 days'")
     chat_history = cursor.fetchall()
     conn.close()
 
-    print("Chat history fetched from DB:", chat_history)  # Debugging log
-    socketio.emit("chat_history", chat_history)
+    # Convert datetime object to string
+    formatted_history = [
+        (username, message, timestamp.strftime("%Y-%m-%d %H:%M:%S")) for username, message, timestamp in chat_history
+    ]
+
+    print("DEBUG: Retrieved Chat History →", formatted_history)  # Debugging log
+    socketio.emit("chat_history", formatted_history)
     socketio.send(f"**{username} joined the chat**")
 
 @socketio.on("message")
@@ -56,7 +63,7 @@ def handle_message(data):
     conn.commit()
     conn.close()
 
-    print(f"Message saved to DB: {username}: {msg}")  # Debugging log
+    print(f"DEBUG: Message saved → {username}: {msg}")  # Debugging log
     socketio.send(data)
 
 if __name__ == "__main__":
