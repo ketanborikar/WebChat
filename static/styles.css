@@ -1,9 +1,55 @@
-#drawer {
+/* Hide pop-up menu by default */
+#tabs {
     position: fixed;
-    right: 0;
-    width: 250px;
-    height: 100%;
-    background-color: #333;
-    color: white;
-    display: none;
+    left: -250px; /* Hidden initially */
+    top: 50px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+    padding: 10px;
+    border: 1px solid #ccc;
+    transition: left 0.3s ease-in-out;
+}
+
+#tabs button {
+    display: block;
+    width: 100%;
+    margin: 5px 0;
+}
+
+.show-tabs {
+    left: 10px !important; /* Slides in when activated */
+}
+
+/* Fix chat message input at the bottom */
+#chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    width: 70%;
+    position: relative; /* Prevent movement */
+    border: 1px solid #ccc;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+#chat-box {
+    flex-grow: 1; /* Allows message scrolling */
+    overflow-y: auto;
+}
+
+#chat-input-container {
+    position: absolute;
+    bottom: 10px;
+    width: 95%;
+    display: flex;
+}
+
+#chat-message {
+    flex-grow: 1;
+}
+
+#chat-input-container button {
+    margin-left: 10px;
 }

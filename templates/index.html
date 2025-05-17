@@ -18,13 +18,16 @@
         <button onclick="signup()">Sign Up</button>
     </div>
 
+    <!-- Button to toggle chat navigation -->
+    <button id="menu-toggle" onclick="toggleTabs()">☰ Menu</button>
+
     <div id="chat-ui" style="display: none;">
         <div id="tabs">
             <button onclick="switchTab('group')">Group Chat</button>
             <button onclick="switchTab('private')">Private Chat</button>
+            <button onclick="toggleDrawer()">Online Users</button>
         </div>
 
-        <button onclick="toggleDrawer()">Toggle Online Users</button>
         <div id="drawer" style="display: none;">
             <h2>Online Users</h2>
             <ul id="online-users"></ul>
@@ -33,6 +36,13 @@
         <div id="chat-container">
             <h3 id="chat-title">Group Chat</h3>
             <div id="chat-box"></div>
-            <input type="text" id="chat-message" placeholder="Type a message">
-            <button onclick="sendGroupMessage()">Send</button>
+
+            <!-- Fixed message input at the bottom -->
+            <div id="chat-input-container">
+                <input type="text" id="chat-message" placeholder="Type a message">
+                <button onclick="sendGroupMessage()">Send</button>
+            </div>
         </div>
+    </div>
+</body>
+</html>

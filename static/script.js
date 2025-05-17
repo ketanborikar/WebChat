@@ -78,3 +78,8 @@ function toggleDrawer() {
     let drawer = document.getElementById("drawer");
     drawer.style.display = (drawer.style.display === "none") ? "block" : "none";
 }
+
+function toggleTabs() {
+    let tabs = document.getElementById("tabs");
+    tabs.classList.toggle("show-tabs"); // Toggle visibility
+}
