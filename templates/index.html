@@ -53,13 +53,35 @@
             .then(response => response.json())
             .then(data => {
                 if (data.token) {
-                    localStorage.setItem("jwt", data.token);  // ✅ Save token
+                    localStorage.setItem("jwt", data.token);  // ✅ Store JWT token
                     document.getElementById("auth").style.display = "none";
                     document.getElementById("chat-container").style.display = "block";
-                    loadUsers(); // Load online users
+                    loadChatPage();  // Load chats and online users
                 } else {
                     alert("Login failed!");
                 }
+            });
+        }
+
+        function loadChatPage() {
+            const token = localStorage.getItem("jwt");
+            if (!token) {
+                alert("You must log in first!");
+                return;
+            }
+
+            fetch("https://your-app-name.onrender.com/chat", {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}` }  // ✅ Include JWT token
+            })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById("chat-container").innerHTML = html;
+            })
+            .catch(() => {
+                alert("Session expired! Please log in again.");
+                localStorage.removeItem("jwt");
+                location.reload();
             });
         }
 
@@ -97,6 +119,8 @@
             tab.innerHTML = `<h3>${username}</h3><div id="private_${username}"></div>`;
             document.getElementById("tabs").appendChild(tab);
         }
+
+        window.onload = loadChatPage;
     </script>
 </body>
 </html>

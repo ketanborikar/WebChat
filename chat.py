@@ -29,7 +29,7 @@ def login():
     config.cursor.execute("SELECT id FROM users WHERE username = %s;", (data["username"],))
     user = config.cursor.fetchone()
     if user:
-        token = create_access_token(identity=user[0])
+        token = create_access_token(identity=data["username"])
         return jsonify({"token": token})
     return jsonify({"message": "Invalid credentials"}), 401
 
