@@ -1,74 +1,18 @@
-/* Improved pop-up menu visibility */
-#tabs {
-    position: fixed;
-    left: -250px;
-    top: 50px;
-    width: 200px;
-    display: flex;
-    flex-direction: column;
-    background: rgba(50, 50, 50, 0.9); /* Opaque background */
-    padding: 10px;
-    border: 1px solid #ccc;
-    transition: left 0.3s ease-in-out;
-    color: white;
-}
-
-#tabs button {
-    display: block;
-    width: 100%;
-    margin: 5px 0;
-    padding: 5px;
-    background: #007bff;
-    border: none;
-    color: white;
-    cursor: pointer;
-}
-
-.show-tabs {
-    left: 10px !important; /* Slide in when activated */
-}
-
-/* Fix message input at the bottom */
-#chat-container {
-    display: flex;
-    flex-direction: column;
-    height: 80vh;
-    width: 70%;
-    position: relative;
-    border: 1px solid #ccc;
-    padding: 10px;
-    overflow-y: auto;
-}
-
-#chat-box {
-    flex-grow: 1; /* Allows message scrolling */
-    overflow-y: auto;
-}
-
-#chat-input-container {
-    position: absolute;
-    bottom: 10px;
-    width: 95%;
-    display: flex;
-}
-
-#chat-message {
-    flex-grow: 1;
-}
-
-#chat-input-container button {
-    margin-left: 10px;
-}
-
-/* Floating notification */
-#notification {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: green;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
+#loading {
     display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid #ccc;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
