@@ -1,4 +1,7 @@
-from flask import Flask, request
+import eventlet
+eventlet.monkey_patch()  # Fix: Apply monkey patching FIRST
+
+from flask import Flask
 from flask_socketio import SocketIO, emit, join_room
 import config
 
