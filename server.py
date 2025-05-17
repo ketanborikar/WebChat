@@ -3,16 +3,18 @@ import os
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 
+# Initialize Flask and SocketIO
 app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-DATABASE_URL = "postgresql://chat_db_bnpo_user:LEltmJ1OYX1mIRZKHKDCGJPDXsEAnx2x@dpg-d0k64ore5dus73bgbnl0-a.oregon-postgres.render.com/chat_db_bnpo"
+# NeonDB Connection String
+DATABASE_URL = "postgresql://neondb_owner:npg_OInDoeA9RTp2@ep-hidden-poetry-a1tlicyt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
-# Connect to PostgreSQL
+# Connect to NeonDB
 def connect_db():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
-# Create chat history table if it doesn't exist
+# Setup Database and Chat History Table
 def setup_db():
     conn = connect_db()
     cursor = conn.cursor()
@@ -38,12 +40,12 @@ def handle_join(username):
     conn = connect_db()
     cursor = conn.cursor()
     
-    # Convert timestamps to string format
+    # Retrieve chat history from the last 30 days
     cursor.execute("SELECT username, message, timestamp FROM messages WHERE timestamp >= NOW() - INTERVAL '30 days'")
     chat_history = cursor.fetchall()
     conn.close()
 
-    # Convert datetime object to string
+    # Format timestamps
     formatted_history = [
         (username, message, timestamp.strftime("%Y-%m-%d %H:%M:%S")) for username, message, timestamp in chat_history
     ]
@@ -56,7 +58,7 @@ def handle_join(username):
 def handle_message(data):
     username, msg = data.split(": ", 1)
 
-    # Save message to PostgreSQL
+    # Save message to NeonDB
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (username, message) VALUES (%s, %s)", (username, msg))
