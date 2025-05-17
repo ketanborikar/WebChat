@@ -1,29 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Chat App</title>
+    <title>Web Chat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
     <style>
-        #chat { width: 60%; float: left; }
-        #drawer { width: 20%; float: right; display: none; }
+        body { font-family: Arial, sans-serif; }
+        #auth { text-align: center; }
+        #chat-container { display: none; }
         #tabs { width: 20%; float: left; }
+        #chat { width: 60%; float: left; }
+        #drawer { width: 20%; float: right; display: none; position: fixed; right: 0; }
     </style>
 </head>
 <body>
-    <div id="tabs"></div>
-    <div id="chat">
-        <h2>Group Chat</h2>
-        <div id="messages"></div>
-        <input type="text" id="msg_input">
-        <button onclick="sendMessage()">Send</button>
+
+    <!-- Login & Signup UI -->
+    <div id="auth">
+        <h2>Login or Sign Up</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <button onclick="signup()">Sign Up</button>
     </div>
-    <div id="drawer">
-        <h2>Online Users</h2>
-        <ul id="users"></ul>
+
+    <!-- Chat UI -->
+    <div id="chat-container">
+        <div id="tabs"></div>
+        <div id="chat">
+            <h2>Group Chat</h2>
+            <div id="messages"></div>
+            <input type="text" id="msg_input">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+        <div id="drawer">
+            <h2>Online Users</h2>
+            <ul id="users"></ul>
+        </div>
     </div>
 
     <script>
-        const socket = io("http://localhost:5000");
+        const socket = io("https://your-app-name.onrender.com");
+
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            fetch("https://your-app-name.onrender.com/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.token) {
+                    localStorage.setItem("jwt", data.token);
+                    document.getElementById("auth").style.display = "none";
+                    document.getElementById("chat-container").style.display = "block";
+                } else {
+                    alert("Login failed!");
+                }
+            });
+        }
+
+        function signup() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            fetch("https://your-app-name.onrender.com/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(() => alert("Sign-up successful! You can now log in."));
+        }
 
         function sendMessage() {
             const msg = document.getElementById("msg_input").value;
@@ -33,6 +83,19 @@
         socket.on("message", data => {
             document.getElementById("messages").innerHTML += `<p>${data.sender}: ${data.message}</p>`;
         });
+
+        socket.on("online_users", data => {
+            document.getElementById("users").innerHTML = "";
+            data.users.forEach(user => {
+                document.getElementById("users").innerHTML += `<li onclick="openPrivateChat('${user}')">${user}</li>`;
+            });
+        });
+
+        function openPrivateChat(username) {
+            const tab = document.createElement("div");
+            tab.innerHTML = `<h3>${username}</h3><div id="private_${username}"></div>`;
+            document.getElementById("tabs").appendChild(tab);
+        }
     </script>
 </body>
 </html>
