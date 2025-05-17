@@ -104,6 +104,7 @@
                     <div id="privateChatBox"></div>
                     <input type="text" id="privateMessageInput" placeholder="Type message">
                     <button onclick="sendPrivateMessage()">Send</button>
+
                     <script>
                         const socket = io.connect("${window.location.origin}");
                         function sendPrivateMessage() {
@@ -120,7 +121,7 @@
                             chatBox.appendChild(messageElement);
                         });
                     </script>
-                `);
+                `);  // ✅ Properly close this template literal
             }
 
             document.getElementById("signupButton").addEventListener("click", () => authenticate("signup"));
