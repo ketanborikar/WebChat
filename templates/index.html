@@ -63,6 +63,14 @@
 
             document.getElementById("joinButton").addEventListener("click", joinChat);
             document.getElementById("sendButton").addEventListener("click", sendMessage);
+
+            // Fix: Ensure hitting Enter sends the message
+            document.getElementById("messageInput").addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();  // Prevents form submission behavior
+                    sendMessage();
+                }
+            });
         });
     </script>
 </body>
