@@ -6,13 +6,13 @@ from flask_socketio import SocketIO
 app = Flask(__name__, template_folder="templates")
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-DATABASE_URL = "postgresql://chat_db_bnpo_user:LEltmJ1OYX1mIRZKHKDCGJPDXsEAnx2x@dpg-d0k64ore5dus73bgbnl0-a/chat_db_bnpo"
+DATABASE_URL = "postgresql://chat_db_bnpo_user:LEltmJ1OYX1mIRZKHKDCGJPDXsEAnx2x@dpg-d0k64ore5dus73bgbnl0-a.oregon-postgres.render.com/chat_db_bnpo"
 
 # Connect to PostgreSQL
 def connect_db():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
-# Create chat history table
+# Create chat history table if it doesn't exist
 def setup_db():
     conn = connect_db()
     cursor = conn.cursor()
@@ -41,9 +41,8 @@ def handle_join(username):
     chat_history = cursor.fetchall()
     conn.close()
 
-    # Send chat history to the user
+    print("Chat history fetched from DB:", chat_history)  # Debugging log
     socketio.emit("chat_history", chat_history)
-
     socketio.send(f"**{username} joined the chat**")
 
 @socketio.on("message")
@@ -57,6 +56,7 @@ def handle_message(data):
     conn.commit()
     conn.close()
 
+    print(f"Message saved to DB: {username}: {msg}")  # Debugging log
     socketio.send(data)
 
 if __name__ == "__main__":
