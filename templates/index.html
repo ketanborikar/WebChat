@@ -76,12 +76,8 @@
       let userName = "";
 
       function authenticate(action) {
-        const username = document
-          .getElementById("usernameInput")
-          .value.trim();
-        const password = document
-          .getElementById("passwordInput")
-          .value.trim();
+        const username = document.getElementById("usernameInput").value.trim();
+        const password = document.getElementById("passwordInput").value.trim();
 
         fetch(`/${action}`, {
           method: "POST",
@@ -110,7 +106,15 @@
         }
       }
 
-      // Display group messages
+      // Allow pressing Enter in group chat to send the message
+      document.getElementById("messageInput").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Display group chat messages
       socket.on("message", (msg) => {
         const chatBox = document.getElementById("chatBox");
         const messageElement = document.createElement("p");
@@ -120,7 +124,7 @@
         chatBox.scrollTop = chatBox.scrollHeight;
       });
 
-      // Handle online users & private chat
+      // Update online users list and set up private chat
       socket.on("update_users", (users) => {
         const userList = document.getElementById("users");
         userList.innerHTML = "";
