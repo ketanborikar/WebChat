@@ -1,18 +1,45 @@
-#loading {
-    display: none;
+/* Keep message input fixed at the bottom */
+#chat-input-container {
     position: fixed;
-    top: 50%;
+    bottom: 10px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: 4px solid #ccc;
-    border-top: 4px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    transform: translateX(-50%);
+    width: 80%;
+    display: flex;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+/* Popup menu listing private chats & group chat */
+#chat-switch-menu {
+    position: fixed;
+    left: -250px; /* Hidden initially */
+    top: 50px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(50, 50, 50, 0.9);
+    padding: 10px;
+    transition: left 0.3s ease-in-out;
+    color: white;
+}
+
+.show-chat-menu {
+    left: 10px !important; /* Slide in when activated */
+}
+
+/* Popup menu on the right listing online users */
+#online-users-menu {
+    position: fixed;
+    right: -250px; /* Hidden initially */
+    top: 50px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(50, 50, 50, 0.9);
+    padding: 10px;
+    transition: right 0.3s ease-in-out;
+    color: white;
+}
+
+.show-users-menu {
+    right: 10px !important; /* Slide in when activated */
 }

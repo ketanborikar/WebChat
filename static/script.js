@@ -1,65 +1,76 @@
 const socket = io("https://webchat-yoaw.onrender.com");
 
+// ✅ Ensure `sendGroupMessage` is correctly defined
+function sendGroupMessage() {
+    let inputField = document.getElementById("chat-message");
+    let content = inputField.value.trim();
+
+    if (content !== "") {
+        console.log("Sending message:", content);
+        socket.emit("message", { sender: localStorage.getItem("username"), group: "main", content });
+
+        inputField.value = ""; // ✅ Clears input field after sending
+    }
+}
+
+// ✅ Allow hitting Enter to send messages
 document.addEventListener("DOMContentLoaded", function() {
-    let loginField = document.getElementById("login-password");
-    let signupField = document.getElementById("signup-password");
     let chatInput = document.getElementById("chat-message");
-
-    console.log("DOM fully loaded, checking elements...");
-
-    if (loginField) {
-        loginField.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                login();
-            }
-        });
-    }
-
-    if (signupField) {
-        signupField.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                signup();
-            }
-        });
-    }
-
+    
     if (chatInput) {
         chatInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 sendGroupMessage();
             }
         });
+    } else {
+        console.log("Error: chat-message element not found.");
     }
 });
 
-function login() {
-    let username = document.getElementById("login-username").value;
-    let password = document.getElementById("login-password").value;
+// ✅ Popup menu for switching between private chats and group chat
+function toggleChatMenu() {
+    let menu = document.getElementById("chat-switch-menu");
+    menu.classList.toggle("show-chat-menu");
 
-    let loadingSpinner = document.getElementById("loading");
+    menu.innerHTML = "<h3>Switch Chat</h3>";
 
-    if (loadingSpinner) {
-        loadingSpinner.style.display = "block"; // ✅ Show spinner only if it exists
-    } else {
-        console.log("Error: 'loading' element not found."); // ✅ Debugging log
-    }
+    // ✅ Add Group Chat option
+    let groupChatBtn = document.createElement("button");
+    groupChatBtn.innerText = "Group Chat";
+    groupChatBtn.onclick = () => switchTab("group");
+    menu.appendChild(groupChatBtn);
 
-    fetch("https://webchat-yoaw.onrender.com/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    }).then(response => response.json())
-      .then(data => {
-          if (loadingSpinner) {
-              loadingSpinner.style.display = "none"; // ✅ Hide spinner after login
-          }
+    // ✅ Fetch private chats dynamically
+    fetch("https://webchat-yoaw.onrender.com/private-chats")
+    .then(response => response.json())
+    .then(chats => {
+        chats.forEach(user => {
+            let userChatBtn = document.createElement("button");
+            userChatBtn.innerText = user.username;
+            userChatBtn.onclick = () => switchTab(user.username);
+            menu.appendChild(userChatBtn);
+        });
+    });
+}
 
-          if (data.access_token) {
-              localStorage.setItem("token", data.access_token);
-              localStorage.setItem("username", username);
+// ✅ Popup menu for displaying online users
+function toggleOnlineUsers() {
+    let menu = document.getElementById("online-users-menu");
+    menu.classList.toggle("show-users-menu");
 
-              document.getElementById("auth").style.display = "none";
-              document.getElementById("chat-ui").style.display = "block";
-          }
-      });
+    menu.innerHTML = "<h3>Online Users</h3><ul id='online-users'></ul>";
+
+    fetch("https://webchat-yoaw.onrender.com/online-users")
+    .then(response => response.json())
+    .then(users => {
+        let userList = document.getElementById("online-users");
+        userList.innerHTML = ""; // Clear previous list
+
+        users.forEach(user => {
+            let userItem = document.createElement("li");
+            userItem.innerText = user.username;
+            userList.appendChild(userItem);
+        });
+    });
 }
