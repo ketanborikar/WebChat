@@ -3,3 +3,5 @@ flask-socketio
 flask-cors
 flask-jwt-extended
 psycopg2-binary
+gunicorn
+eventlet
